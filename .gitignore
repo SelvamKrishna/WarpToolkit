@@ -1,0 +1,16 @@
+# -- IDE Settings -- 
+/.vscode/
+compile_flags.txt
+
+# -- Build Artifacts -- 
+*.dll
+*.exe
+*/*.dll
+*/*.exe
+
+# -- Logs and Test --
+*.log
+/test/
+
+# -- Temporary --
+makefile
