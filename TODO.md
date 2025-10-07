@@ -3,7 +3,7 @@
 ---
 
 ## WarpLog
-- [ ] Minimal logging prototype
+- [x] Minimal logging prototype
 - [ ] Colored console logging support
 - [ ] Tag attached logging " [ENGINE][SUB_SYSTEM] : Hello "
 - [ ] Clean documentation
