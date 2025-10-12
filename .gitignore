@@ -3,14 +3,14 @@
 compile_flags.txt
 
 # -- Build Artifacts -- 
+*.a
+*.o
 *.dll
 *.exe
+*/*.a
+*/*.o
 */*.dll
 */*.exe
 
-# -- Logs and Test --
-*.log
+# -- Test --
 /test/
-
-# -- Temporary --
-makefile

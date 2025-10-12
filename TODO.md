@@ -7,7 +7,7 @@
 - [x] Colored console logging support
 - [x] Tag attached logging " [ENGINE][SUB_SYSTEM] : Hello "
 - [x] Clean documentation
-- [ ] Tag template with date and time logging
+- [x] Tag template with time logging
 
 ---
 

@@ -46,27 +46,18 @@ std::string cache_tag_vec(const std::vector<tag>& tags, std::string_view delim) 
 namespace warp::log {
 
 [[nodiscard]] std::string sender::_get_timestamp() const noexcept {
-    auto in_time_t = std::chrono::system_clock::to_time_t(
-		std::chrono::system_clock::now()
-	);
-
-    std::tm buf;
+    char buf[sizeof("[HH:MM:SS]")] {0};
+    auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::tm tm_struct{};
 
 #ifdef _WIN32
-    localtime_s(&buf, &in_time_t);
+    localtime_s(&tm_struct, &t);
 #else
-    localtime_r(&in_time_t, &buf);
+    localtime_r(&t, &tm_struct);
 #endif
 
-    char ts[sizeof("[HH:MM:SS]")];
-    return (
-		std::strftime(
-			ts,
-			sizeof(ts), 
-			"[%H:%M:%S]", 
-			&buf
-		) == 0
-	) ? "[]" : std::string(ts);
+    std::strftime(buf, sizeof(buf), "[%H:%M:%S]", &tm_struct);
+    return std::string(buf);
 }
 
 } /// namespace warp::log
