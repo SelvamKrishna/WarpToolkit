@@ -1,6 +1,4 @@
-#include <iomanip>
 #include <mutex>
-#include <sstream>
 
 #include "warp_log.hpp"
 
@@ -48,9 +46,11 @@ std::string cache_tag_vec(const std::vector<tag>& tags, std::string_view delim) 
 namespace warp::log {
 
 [[nodiscard]] std::string sender::_get_timestamp() const noexcept {
-    auto now = std::chrono::system_clock::now();
-    auto in_time_t = std::chrono::system_clock::to_time_t(now);
-    std::tm buf{};
+    auto in_time_t = std::chrono::system_clock::to_time_t(
+		std::chrono::system_clock::now()
+	);
+
+    std::tm buf;
 
 #ifdef _WIN32
     localtime_s(&buf, &in_time_t);
@@ -58,10 +58,15 @@ namespace warp::log {
     localtime_r(&in_time_t, &buf);
 #endif
 
-    std::stringstream ss;
-    ss << "[" << std::put_time(&buf, "%Y-%m-%d %H:%M:%S") << "]";
-
-    return ss.str();
+    char ts[sizeof("[HH:MM:SS]")];
+    return (
+		std::strftime(
+			ts,
+			sizeof(ts), 
+			"[%H:%M:%S]", 
+			&buf
+		) == 0
+	) ? "[]" : std::string(ts);
 }
 
 } /// namespace warp::log
