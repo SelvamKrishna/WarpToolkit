@@ -4,8 +4,9 @@
 
 ## WarpLog
 - [x] Minimal logging prototype
-- [ ] Colored console logging support
-- [ ] Tag attached logging " [ENGINE][SUB_SYSTEM] : Hello "
+- [x] Colored console logging support
+- [x] Tag attached logging " [ENGINE][SUB_SYSTEM] : Hello "
+- [ ] Logging of date and time using tags
 - [ ] Clean documentation
 
 ---

@@ -1,26 +1,31 @@
-#include "warp_log.hpp"
-
-#include <cstddef>
 #include <mutex>
+
+#include "warp_log.hpp"
 
 static std::mutex g_console_mutex;
 
 void warp::log::internal::write_to_console(
-	std::ostream& os,
-	std::string_view pre,
+	level lvl, 
+	std::string_view pre, 
 	std::string_view msg
 ) {
-	std::scoped_lock lock{g_console_mutex};
+	auto& os = stream_from_level(lvl);
 
-	std::string buffer;
-	buffer.reserve(pre.size() + msg.size() + 4);
+	os.write(pre.data(), pre.size());
+	os.write("\033[", 2);
 
-	buffer.append(pre);
-	buffer.append(" : ");
-	buffer.append(msg);
-	buffer.append("\n");
+	switch (lvl) {
+		case level::INFO:  os.write("32m[INFO]", 9); break;
+		case level::DEBUG: os.write("36m[DEBUG]", 10); break;
+		case level::WARN:  os.write("33m[WARN]", 9); break;
+		case level::ERROR: os.write("31m[ERROR]", 10); break;
+	}
 
-	os << buffer;
+	os.write("\033[0m : ", 7);
+
+	os.write(msg.data(), msg.size());
+	os.put('\n');
+	os.flush();
 }
 
 std::string warp::log::internal::cache_tag_vec(

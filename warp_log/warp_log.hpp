@@ -18,7 +18,6 @@
 #include <iostream>
 #include <string>
 #include <string_view>
-#include <utility>
 
 namespace warp::log {
 
@@ -40,13 +39,14 @@ using tag_vec = std::vector<i_tag*>;
 
 namespace internal {
 
-WARP_TOOLKIT_API void write_to_console(std::ostream& os, std::string_view pre, std::string_view msg);
+WARP_TOOLKIT_API void write_to_console(level lvl, std::string_view pre, std::string_view msg);
 
 [[nodiscard]] inline constexpr std::ostream& stream_from_level(level lvl) noexcept {
 	return (lvl == level::INFO || lvl == level::DEBUG) ? std::cout : std::cerr;
 }
 
 WARP_TOOLKIT_API std::string cache_tag_vec(const tag_vec& tags, std::string_view delim = "");
+
 } /// namespace internal
 
 class WARP_TOOLKIT_API sender final {
@@ -62,18 +62,12 @@ public:
 
 	explicit sender(const tag_vec& tags) noexcept : _context(internal::cache_tag_vec(tags)) {}
 
-	inline void log(level lvl, std::string_view msg) const noexcept {
-		using namespace internal;
-		auto& os = stream_from_level(lvl);
-		write_to_console(os, _context, msg);
-	}
-
-	inline void info(std::string_view msg) const noexcept { log(level::INFO, msg); }
-	inline void dbg(std::string_view msg)  const noexcept { log(level::DEBUG, msg); }
-	inline void warn(std::string_view msg) const noexcept { log(level::WARN, msg); }
-	inline void error(std::string_view msg) const noexcept { log(level::ERROR, msg); }
+	void info(std::string_view msg) const noexcept { internal::write_to_console(level::INFO, _context, msg); }
+	void dbg(std::string_view msg) const noexcept { internal::write_to_console(level::DEBUG, _context, msg); }
+	void warn(std::string_view msg) const noexcept { internal::write_to_console(level::WARN, _context, msg); }
+	void error(std::string_view msg) const noexcept { internal::write_to_console(level::ERROR, _context, msg); }
 };
 
-} // namespace warp::log
+} /// namespace warp::log
 
-#endif // WARP_LOG
+#endif /// WARP_LOG
