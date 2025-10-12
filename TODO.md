@@ -6,8 +6,8 @@
 - [x] Minimal logging prototype
 - [x] Colored console logging support
 - [x] Tag attached logging " [ENGINE][SUB_SYSTEM] : Hello "
-- [ ] Logging of date and time using tags
-- [ ] Clean documentation
+- [x] Clean documentation
+- [ ] Tag template with date and time logging
 
 ---
 
