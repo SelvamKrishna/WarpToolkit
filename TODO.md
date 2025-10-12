@@ -3,10 +3,11 @@
 ---
 
 ## WarpLog
-- [ ] Minimal logging prototype
-- [ ] Colored console logging support
-- [ ] Tag attached logging " [ENGINE][SUB_SYSTEM] : Hello "
-- [ ] Clean documentation
+- [x] Minimal logging prototype
+- [x] Colored console logging support
+- [x] Tag attached logging " [ENGINE][SUB_SYSTEM] : Hello "
+- [x] Clean documentation
+- [x] Tag template with time logging
 
 ---
 
