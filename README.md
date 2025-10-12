@@ -99,3 +99,8 @@ Pre-defined templates for common use cases
 
 - `warp::log::templates::ansi_foreground_color` : Foreground ANSI color codes for terminal output.
 - `warp::log::templates::colored_tag` : A log tag with a fixed foreground color.
+
+| Component | Description |
+|-----|-----|
+| `warp::log::templates::ansi_foreground_color` | Foreground ANSI color codes for terminal output |
+| `warp::log::templates::colored_tag` | A log tag with a fixed foreground color |
