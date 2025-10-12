@@ -1,4 +1,6 @@
+#include <iomanip>
 #include <mutex>
+#include <sstream>
 
 #include "warp_log.hpp"
 
@@ -27,27 +29,39 @@ void write_to_console(level lvl, std::string_view pre, std::string_view msg) {
 	os.flush();
 }
 
-std::string cache_tag_vec(const tag_vec& tags, std::string_view delim) {
+std::string cache_tag_vec(const std::vector<tag>& tags, std::string_view delim) {
 	if (tags.empty()) return {};
 
-	// Find first non null tag
-	size_t start = 0;
-	while (start < tags.size() && tags[start] == nullptr) ++start;
+    std::string result;
+    result.append(tags[0]);
 
-	// If all tags are null
-	if (start == tags.size()) return {};
-
-	std::string result {tags[start]->get_str()};
-
-	for (size_t i = start + 1; i < tags.size(); ++i) {
-		const auto* TAG = tags[i];
-		if (TAG == nullptr) [[unlikely]] continue;
-
-		if (!delim.empty()) result.append(delim);
-		result.append(TAG->get_str());
-	}
+    for (size_t i = 1; i < tags.size(); ++i) {
+        result.append(delim);
+        result.append(tags[i]);
+    }
 
 	return result;
 }
 
 } /// namespace warp::log::internal
+
+namespace warp::log {
+
+[[nodiscard]] std::string sender::_get_timestamp() const noexcept {
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::tm buf{};
+
+#ifdef _WIN32
+    localtime_s(&buf, &in_time_t);
+#else
+    localtime_r(&in_time_t, &buf);
+#endif
+
+    std::stringstream ss;
+    ss << "[" << std::put_time(&buf, "%Y-%m-%d %H:%M:%S") << "]";
+
+    return ss.str();
+}
+
+} /// namespace warp::log
