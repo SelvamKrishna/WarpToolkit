@@ -12,8 +12,8 @@
 ## WarpTimer
 - [x] RAII timer *starts with construction & ends with destruction*
 - [x] Colored terminal logging of timer
-- [ ] Manual start and stop of timer
-- [ ] Manual pause and resume of timer
+- [x] Manual start and stop of timer
+- [x] Manual pause and resume of timer
 - [ ] Utility tools to measure a funtion automatically
 - [ ] Utility tools for benchmarking functions
 - [ ] Hierarchical timers logging all sub processes with it
