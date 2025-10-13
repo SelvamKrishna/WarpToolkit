@@ -4,6 +4,7 @@ Warp Toolkit is a collection of high-performance, general-purpose utility librar
 
 ## Overview
 - **[WarpLog](#warp-log):** A lightweight, high-performance logging library
+- **[WarpTimer](#warp-timer):** A lightweight, high-performance timing and benchmarking library
 
 ---
 
@@ -75,3 +76,6 @@ logger.info("Logged with timestamp.");
 - All logging functions of `sender` use variadic templates with `std::format` for type-safe, efficient formatting.
 - Runtime timestamps are calculated on-demand for each log call when enabled.
 ---
+
+## Warp Timer
+*In-Progress*

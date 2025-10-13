@@ -1,19 +1,30 @@
 # TODO — Warp Toolkit
 
+## Overview
+
+|Library  |Version|Status     |Description               |
+|---------|-------|-----------|--------------------------|
+|WarpLog  |v1     |Done       |Logging Tool              |
+|WarpTimer|NA     |In-Progress|Timing & Benchmarking Tool|
+
 ---
 
-## WarpLog
-- [x] Minimal logging prototype
-- [x] Colored console logging support
-- [x] Tag attached logging " [ENGINE][SUB_SYSTEM] : Hello "
-- [x] Clean documentation
-- [x] Tag template with time logging
+## WarpTimer
+- [x] RAII timer *starts with construction & ends with destruction*
+- [x] Colored terminal logging of timer
+- [ ] Manual start and stop of timer
+- [ ] Manual pause and resume of timer
+- [ ] Utility tools to measure a funtion automatically
+- [ ] Utility tools for benchmarking functions
+- [ ] Hierarchical timers logging all sub processes with it
 
 ---
 
 ## Build System
-- [ ] Cross-platform `makefile`
-- [ ] Static library build support
+- [x] Cross-platform `makefile`
+- [x] Static library build support
+- [x] `warp::log` support
+- [ ] `warp::timer` support
 
 ---
 
