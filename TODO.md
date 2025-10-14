@@ -7,6 +7,10 @@
 |WarpLog  |v1     |Done       |Logging Tool              |
 |WarpTimer|NA     |In-Progress|Timing & Benchmarking Tool|
 
+## General
+- [ ] **FIX:** `constepxr` warning in `warp::log::tag` factory functions
+- [ ] Reformat and refactor libraries to adapt modern standards 
+
 ---
 
 ## WarpTimer
@@ -14,8 +18,8 @@
 - [x] Colored terminal logging of timer
 - [x] Manual start and stop of timer
 - [x] Manual pause and resume of timer
-- [ ] Utility tools to measure a funtion automatically
-- [ ] Utility tools for benchmarking functions
+- [x] Utility tools to measure a funtion automatically
+- [x] Utility tools for benchmarking functions
 - [ ] Hierarchical timers logging all sub processes with it
 
 ---
