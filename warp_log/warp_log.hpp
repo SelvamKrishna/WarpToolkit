@@ -126,15 +126,7 @@ private:
   /// @param msg Format string message
   /// @param args Arguments for formatting
   template <typename... Args>
-  void _log(level lvl, std::format_string<Args...> msg, Args&&... args) const {
-    std::string formatted {
-      _log_timestamp
-      ? make_colored_tag(_time_stamp_color, _get_timestamp()) + _context
-      : _context
-    };
-
-    internal::write_to_console(lvl, formatted, std::format(msg, std::forward<Args>(args)...));
-  }
+  void _log(level lvl, std::format_string<Args...> msg, Args&&... args) const;
 
 #pragma endregion /// Helpers
 public:
@@ -163,38 +155,69 @@ public:
 
   /// @brief Log an informational message
   template <typename... Args>
-  void info(std::format_string<Args...> msg, Args&&... args) const {
-    _log(level::INFO, msg, std::forward<Args>(args)...);
-  }
+  void info(std::format_string<Args...> msg, Args&&... args) const;
 
   /// @brief Log a debug message
   template <typename... Args>
-  void dbg(std::format_string<Args...> msg, Args&&... args) const {
-    _log(level::DEBUG, msg, std::forward<Args>(args)...);
-  }
+  void dbg(std::format_string<Args...> msg, Args&&... args) const;
 
   /// @brief Log a warning message
   template <typename... Args>
-  void warn(std::format_string<Args...> msg, Args&&... args) const {
-    _log(level::WARN, msg, std::forward<Args>(args)...);
-  }
+  void warn(std::format_string<Args...> msg, Args&&... args) const;
 
   /// @brief Log an error message
   template <typename... Args>
-  void error(std::format_string<Args...> msg, Args&&... args) const {
-    _log(level::ERROR, msg, std::forward<Args>(args)...);
-  }
+  void error(std::format_string<Args...> msg, Args&&... args) const;
 
   /// @brief Enable or disable runtime timestamps for all log messages
   /// @param flag `true` to enable, `false` to disable
-  constexpr void log_timestamp(bool flag) noexcept { _log_timestamp = flag; }
+  constexpr void log_timestamp(bool flag) noexcept;
 
   /// @brief Change the timestamp color
   /// @param color The new color of the timestamp
-  constexpr void set_timestamp_color(ansi_fg_color color) noexcept { _time_stamp_color = color; }
+  constexpr void set_timestamp_color(ansi_fg_color color) noexcept;
 
 #pragma endregion /// Logging functions
 };
+
+template <typename... Args>
+void sender::_log(level lvl, std::format_string<Args...> msg, Args&&... args) const {
+  internal::write_to_console(
+    lvl,
+    std::string {
+      _log_timestamp
+      ? make_colored_tag(_time_stamp_color, _get_timestamp()) + _context
+      : _context
+    },
+    std::format(msg, std::forward<Args>(args)...)
+  );
+}
+
+#pragma region /// warp::log::sender
+
+template <typename... Args>
+void sender::info(std::format_string<Args...> msg, Args&&... args) const {
+  _log(level::INFO, msg, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void sender::dbg(std::format_string<Args...> msg, Args&&... args) const {
+  _log(level::DEBUG, msg, std::forward<Args>(args)...);
+}
+template <typename... Args>
+void sender::warn(std::format_string<Args...> msg, Args&&... args) const {
+  _log(level::WARN, msg, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void sender::error(std::format_string<Args...> msg, Args&&... args) const {
+  _log(level::ERROR, msg, std::forward<Args>(args)...);
+}
+
+constexpr void sender::log_timestamp(bool flag) noexcept { _log_timestamp = flag; }
+constexpr void sender::set_timestamp_color(ansi_fg_color color) noexcept { _time_stamp_color = color; }
+
+#pragma endregion /// warp::log::sender
 
 } /// namespace warp::log
 

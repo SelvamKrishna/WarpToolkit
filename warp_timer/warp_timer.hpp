@@ -140,11 +140,7 @@ public:
   /// @param callable Function to execute.
   /// @return Elapsed time in the specified unit.
   template <time_unit InTimeUnit>
-  static double measure_function(std::string_view desc, const std::function<void()>& callable) noexcept {
-    const double ELAPSED {internal::time_unit_cast<InTimeUnit>(_measure_function_time_ms(callable))};
-    _log(desc, ELAPSED, InTimeUnit);
-    return ELAPSED;
-  }
+  static double measure_function(std::string_view desc, const std::function<void()>& callable) noexcept;
 
   /// @brief Benchmark a callable function multiple times and summarize results.
   /// @tparam InTimeUnit Output time unit.
@@ -156,19 +152,37 @@ public:
     std::string_view desc,
     const std::function<void()>& callable,
     uint32_t total_iterations = 8
-  ) noexcept {
-    std::vector<double> results;
-    results.reserve(total_iterations);
-
-    while (total_iterations--) results.push_back(
-      internal::time_unit_cast<InTimeUnit>(_measure_function_time_ms(callable))
-    );
-
-    _log_benchmark(desc, results, InTimeUnit);
-  }
+  ) noexcept;
 
 #pragma endregion /// Benchmarking Tools
 };
+
+#pragma region /// warp::timer
+
+template <time_unit InTimeUnit>
+double timer::measure_function(std::string_view desc, const std::function<void()>& callable) noexcept {
+  const double ELAPSED {internal::time_unit_cast<InTimeUnit>(_measure_function_time_ms(callable))};
+  _log(desc, ELAPSED, InTimeUnit);
+  return ELAPSED;
+}
+
+template <time_unit InTimeUnit>
+void timer::default_benchmark(
+  std::string_view desc,
+  const std::function<void()>& callable,
+  uint32_t total_iterations
+) noexcept {
+  std::vector<double> results;
+  results.reserve(total_iterations);
+
+  while (total_iterations--) results.push_back(
+    internal::time_unit_cast<InTimeUnit>(_measure_function_time_ms(callable))
+  );
+
+  _log_benchmark(desc, results, InTimeUnit);
+}
+
+#pragma endregion /// warp::timer
 
 } /// namespace warp
 
