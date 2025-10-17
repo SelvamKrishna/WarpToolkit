@@ -70,9 +70,9 @@ inline constexpr double time_unit_cast(double elapsed_ms) noexcept {
 /// or benchmarks callable functions across multiple iterations.
 class WARP_TOOLKIT_API timer final {
 private:
-	const std::string _DESC {}; ///< Description used for log output.
+	const std::string _DESC; ///< Description used for log output.
 	std::chrono::time_point<std::chrono::high_resolution_clock> _start; ///< Start timestamp.
-	const time_unit _TIME_UNIT {time_unit::MILLI_SECONDS}; ///< Current time unit.
+	const time_unit _TIME_UNIT; ///< Current time unit.
 	bool _is_running {true}; ///< Whether the timer is currently active.
 
 #pragma region /// Internal Helpers
@@ -104,15 +104,17 @@ public:
 
 	/// @brief Default-constructs and starts the timer immediately.
 	explicit timer() noexcept
-	: _start {std::chrono::high_resolution_clock::now()} {}
+	: _DESC {""}
+	, _start {std::chrono::high_resolution_clock::now()} 
+	, _TIME_UNIT {time_unit::MILLI_SECONDS} {}
 
 	/// @brief Construct a named timer with an optional time unit.
 	/// @param description Timer label (for logging).
 	/// @param unit        Time unit for logging (default: milliseconds).
 	explicit timer(std::string description, time_unit unit = time_unit::MILLI_SECONDS) noexcept
 	: _DESC {std::move(description)}
-	, _TIME_UNIT {unit}
-	, _start {std::chrono::high_resolution_clock::now()} {}
+	, _start {std::chrono::high_resolution_clock::now()} 
+	, _TIME_UNIT {unit} {}
 
 	/// @brief Destructor automatically stops and logs if still running.
 	~timer() noexcept;

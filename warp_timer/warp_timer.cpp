@@ -39,7 +39,7 @@ void timer::_log_benchmark(std::string_view desc, std::vector<double> results, t
 
 	const double MODE {
 		[&results, &SIZE] {
-			double max_value;
+			double max_value {results[0]};
 			uint8_t max_count {1};
 			uint8_t current_count {1};
 
