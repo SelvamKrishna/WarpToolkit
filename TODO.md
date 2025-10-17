@@ -20,7 +20,6 @@
 - [x] Manual pause and resume of timer
 - [x] Utility tools to measure a funtion automatically
 - [x] Utility tools for benchmarking functions
-- [ ] Hierarchical timers logging all sub processes with it
 
 ---
 

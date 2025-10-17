@@ -114,4 +114,4 @@ void timer::stop() noexcept {
 
 void timer::reset() noexcept { start(); }
 
-} // namespace warp
+} /// namespace warp
