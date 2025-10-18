@@ -9,18 +9,14 @@ namespace warp {
 
 // --- timer ---
 
-void timer::_log(std::string_view desc, double elapsed, time_unit time_unit) noexcept {
-  std::cout
-    << std::format(
-      "\033[34m[TIMER]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n"
-      , elapsed
-      , internal::time_unit_prefix(time_unit)
-      , desc
-    )
-  ;
+void Timer::_logElapsed(std::string_view desc, double elapsed, TimeUnit time_unit) noexcept {
+  std::cout << std::format(
+    "\033[34m[TIMER]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n",
+    elapsed , internal::timeUnitPrefix(time_unit) , desc
+  );
 }
 
-void timer::_log_benchmark(std::string_view desc, std::vector<double> results, time_unit time_unit) noexcept {
+void Timer::_logBenchmark(std::string_view desc, std::vector<double> results, TimeUnit time_unit) noexcept {
   if (results.empty()) [[unlikely]] {
     std::cout
       << "\033[34m[TIMER][BENCHMARK]\033[0m\033[33m[WARNING]\033[0m : "
@@ -54,7 +50,7 @@ void timer::_log_benchmark(std::string_view desc, std::vector<double> results, t
     } ()
   };
 
-  const char U = internal::time_unit_prefix(time_unit);
+  const char U = internal::timeUnitPrefix(time_unit);
   std::cout << std::format(
     ""
     "\033[34m[TIMER][BENCHMARK]\033[0m : {}\n"
@@ -65,71 +61,69 @@ void timer::_log_benchmark(std::string_view desc, std::vector<double> results, t
 );
 }
 
-[[nodiscard]] double timer::_get_time_since_start() const noexcept {
+[[nodiscard]] double Timer::_getTimeSinceStart() const noexcept {
   const auto now = std::chrono::high_resolution_clock::now();
   const double elapsed_ms = std::chrono::duration<double, std::milli>(now - _start).count();
-  return internal::convert_units(elapsed_ms, time_unit::MILLI_SECONDS, _TIME_UNIT);
+  return internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, _UNIT);
 }
 
-[[nodiscard]] double timer::_stop_and_get_elapsed() noexcept {
-  const double elapsed = _get_time_since_start();
+[[nodiscard]] double Timer::_stopAndGetElapsed() noexcept {
+  const double elapsed = _getTimeSinceStart();
   _is_running = false;
   _start = std::chrono::high_resolution_clock::now(); // reset start
   return elapsed;
 }
 
-[[nodiscard]] double timer::_measure_callable_time_ms(const std::function<void()>& callable) noexcept {
+[[nodiscard]] double Timer::_measureCallableTimeMS(const std::function<void()>& callable) noexcept {
   const auto t1 = std::chrono::high_resolution_clock::now();
   callable();
   const auto t2 = std::chrono::high_resolution_clock::now();
   return std::chrono::duration<double, std::milli>(t2 - t1).count();
 }
 
-timer::~timer() noexcept { if (_is_running) stop(); }
+Timer::~Timer() noexcept { if (_is_running) stop(); }
 
-void timer::start() noexcept {
+void Timer::start() noexcept {
   _is_running = true;
   _start = std::chrono::high_resolution_clock::now();
 }
 
-void timer::stop() noexcept {
-  const double ELAPSED = _stop_and_get_elapsed();
-  _log(_DESC, ELAPSED, _TIME_UNIT);
+void Timer::stop() noexcept {
+  const double ELAPSED = _stopAndGetElapsed();
+  _logElapsed(_DESC, ELAPSED, _UNIT);
 }
 
 // --- hierarchy_timer ---
 
-void hierarchy_timer::_log_timer_start() const noexcept {
+void HierarchyTimer::_logTimerStart() const noexcept {
   std::cout << "\033[34m[TIMER]\033[0m : " << _DESC << " {\n\n";
 }
 
-void hierarchy_timer::_sub_task_impl(
+void HierarchyTimer::_subTaskImpl(
   std::string_view desc,
   double elapsed_ms,
-  time_unit display_unit
+  TimeUnit display_unit
 ) noexcept {
-  _sub_task_measure += internal::convert_units(elapsed_ms, time_unit::MILLI_SECONDS, _TIME_UNIT);
+  _sub_task_measure += internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, _UNIT);
 
   std::cout
-    << "\033[34m[TASK]\033[0m "
-    << internal::format_elapsed(
-      internal::convert_units(elapsed_ms, time_unit::MILLI_SECONDS, display_unit),
+    << "  \033[34m[TIMER][SUB]\033[0m"
+    << internal::formatElapsed(
+      internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, display_unit),
       display_unit
     )
     << " : " << desc << '\n';
 }
 
-hierarchy_timer::~hierarchy_timer() noexcept {
-  if (_is_running) stop();
+HierarchyTimer::~HierarchyTimer() noexcept { if (_is_running) stop(); }
+
+void HierarchyTimer::stop() noexcept {
+  const double ELAPSED = _stopAndGetElapsed();
+  std::cout << "\n} " << std::format("\033[32m[{:.3f} {}s]\033[0m\n", ELAPSED, internal::timeUnitPrefix(_UNIT));
 }
 
-void hierarchy_timer::stop() noexcept {
-  const double ELAPSED = _stop_and_get_elapsed();
-  std::cout << "\n} " << std::format("\033[32m[{:.3f} {}s]\033[0m\n", ELAPSED, internal::time_unit_prefix(_TIME_UNIT));
-}
-
-void hierarchy_timer::sub_task(std::string_view desc, const std::function<void()>& callable) noexcept {
-  _sub_task_impl(desc, _measure_callable_time_ms(callable), _TIME_UNIT);
+void HierarchyTimer::subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
+  _subTaskImpl(desc, _measureCallableTimeMS(callable), _UNIT);
 }
 
 } /// namespace warp

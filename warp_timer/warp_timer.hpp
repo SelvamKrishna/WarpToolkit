@@ -20,120 +20,120 @@
 
 namespace warp {
 
-enum class time_unit : uint8_t { MICRO_SECONDS, MILLI_SECONDS, SECONDS };
+enum class TimeUnit : uint8_t { MicroSeconds, MilliSeconds, Seconds };
 
 namespace internal {
 
-inline constexpr int unit_id(time_unit u) noexcept { return static_cast<int>(u); }
+inline constexpr int unitID(TimeUnit u) noexcept { return static_cast<int>(u); }
 
-static constexpr double table[3][3] {
+static inline constexpr double TABLE[3][3] {
   {1.0,       0.001,    0.000001},
   {1000.0,    1.0,      0.001   },
   {1'000'000, 1000.0,   1.0     }
 };
 
 // Compile-time conversion
-template <time_unit Source = time_unit::MILLI_SECONDS, time_unit Target>
-inline constexpr double convert_units(double value) noexcept {
+template <TimeUnit Source = TimeUnit::MilliSeconds, TimeUnit Target>
+inline constexpr double convertUnit(double value) noexcept {
   if constexpr (Source == Target) return value;
-  return value * table[unit_id(Source)][unit_id(Target)];
+  return value * TABLE[unitID(Source)][unitID(Target)];
 }
 
 // Runtime conversion
-inline double convert_units(double value, time_unit source, time_unit target) noexcept {
+inline double convertUnit(double value, TimeUnit source, TimeUnit target) noexcept {
   if (source == target) return value;
-  return value * table[unit_id(source)][unit_id(target)];
+  return value * TABLE[unitID(source)][unitID(target)];
 }
 
-inline constexpr char time_unit_prefix(time_unit u) noexcept {
-  switch(u) {
-    case time_unit::MICRO_SECONDS: return 'u';
-    case time_unit::MILLI_SECONDS: return 'm';
-    case time_unit::SECONDS:       return '\0';
-  }
-  return '?';
+inline constexpr char timeUnitPrefix(TimeUnit u) noexcept {
+  const char PREFIX_CHAR[3] { 'u', 'm', '\x00' };
+  return PREFIX_CHAR[unitID(u)];
 }
 
-inline std::string format_elapsed(double value, time_unit u) noexcept {
-  if (time_unit_prefix(u) == '\0')
-    return std::format("\033[32m[{:.3f} s]\033[0m", value);
-  return std::format("\033[32m[{:.3f} {}s]\033[0m", value, time_unit_prefix(u));
+inline std::string formatElapsed(double value, TimeUnit u) noexcept {
+  return std::format("\033[32m[{:.3f} {}s]\033[0m", value, timeUnitPrefix(u));
 }
 
 } // namespace internal
 
-class WARP_TOOLKIT_API timer {
+class WARP_TOOLKIT_API Timer {
 private:
-  static void _log(std::string_view desc, double elapsed, time_unit unit) noexcept;
-  static void _log_benchmark(std::string_view desc, std::vector<double> results, time_unit unit) noexcept;
+  static void _logElapsed(std::string_view desc, double elapsed, TimeUnit unit) noexcept;
+  static void _logBenchmark(std::string_view desc, std::vector<double> results, TimeUnit unit) noexcept;
 
 protected:
   const std::string _DESC;
   std::chrono::time_point<std::chrono::high_resolution_clock> _start;
-  const time_unit _TIME_UNIT;
+  const TimeUnit _UNIT;
   bool _is_running {true};
 
-  [[nodiscard]] double _get_time_since_start() const noexcept;
-  [[nodiscard]] double _stop_and_get_elapsed() noexcept;
-  [[nodiscard]] static double _measure_callable_time_ms(const std::function<void()>& callable) noexcept;
+  [[nodiscard]] double _getTimeSinceStart() const noexcept;
+  [[nodiscard]] double _stopAndGetElapsed() noexcept;
+  [[nodiscard]] static double _measureCallableTimeMS(const std::function<void()>& callable) noexcept;
 
 public:
-  explicit timer() noexcept
-  : _DESC {""}, _start {std::chrono::high_resolution_clock::now()}, _TIME_UNIT {time_unit::MILLI_SECONDS} {}
+  explicit Timer() noexcept
+  : _DESC {""}, _start {std::chrono::high_resolution_clock::now()}, _UNIT {TimeUnit::MilliSeconds} {}
 
-  explicit timer(std::string description, time_unit unit = time_unit::MILLI_SECONDS) noexcept
-  : _DESC {std::move(description)}, _start {std::chrono::high_resolution_clock::now()}, _TIME_UNIT {unit} {}
+  explicit Timer(std::string description, TimeUnit unit = TimeUnit::MilliSeconds) noexcept
+  : _DESC {std::move(description)}, _start {std::chrono::high_resolution_clock::now()}, _UNIT {unit} {}
 
-  ~timer() noexcept;
+  ~Timer() noexcept;
 
   void start() noexcept;
   void stop() noexcept;
   void reset() noexcept { start(); }
 
-  template <time_unit Target = time_unit::MILLI_SECONDS>
-  static double measure_function(std::string_view desc, const std::function<void()>& callable) noexcept {
-    const double elapsed = internal::convert_units<time_unit::MILLI_SECONDS, Target>(_measure_callable_time_ms(callable));
-    _log(desc, elapsed, Target);
+  template <TimeUnit Target = TimeUnit::MilliSeconds>
+  static double measure(std::string_view desc, const std::function<void()>& callable) noexcept {
+    const double elapsed = internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable));
+    _logElapsed(desc, elapsed, Target);
     return elapsed;
   }
 
-  template <time_unit Target = time_unit::MILLI_SECONDS>
-  static void default_benchmark(std::string_view desc, const std::function<void()>& callable, uint32_t iterations = 8) noexcept {
+  template <TimeUnit Target = TimeUnit::MilliSeconds>
+  static void benchmark(std::string_view desc, const std::function<void()>& callable, uint32_t iterations = 8) noexcept {
     std::vector<double> results;
     results.reserve(iterations);
 
     while (iterations--) results.push_back(
-      internal::convert_units<time_unit::MILLI_SECONDS, Target>(_measure_callable_time_ms(callable))
+      internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable))
     );
 
-    _log_benchmark(desc, std::move(results), Target);
+    _logBenchmark(desc, std::move(results), Target);
   }
 };
 
-class WARP_TOOLKIT_API hierarchy_timer final : public timer {
+class WARP_TOOLKIT_API HierarchyTimer final : public Timer {
 private:
   double _sub_task_measure {0.0};
 
-  void _log_timer_start() const noexcept;
-  void _sub_task_impl(std::string_view desc, double elapsed_ms, time_unit display_unit) noexcept;
+  void _logTimerStart() const noexcept;
+  void _subTaskImpl(std::string_view desc, double elapsed_ms, TimeUnit display_unit) noexcept;
 
 public:
-  explicit hierarchy_timer() noexcept : timer {} { _log_timer_start(); }
-  explicit hierarchy_timer(std::string description, time_unit unit = time_unit::MILLI_SECONDS) noexcept
-  : timer {std::move(description), unit} { _log_timer_start(); }
+  explicit HierarchyTimer() noexcept : Timer {} { _logTimerStart(); }
+  explicit HierarchyTimer(std::string description, TimeUnit unit = TimeUnit::MilliSeconds) noexcept
+  : Timer {std::move(description), unit} { _logTimerStart(); }
 
-  ~hierarchy_timer() noexcept;
+  ~HierarchyTimer() noexcept;
 
   void start() noexcept = delete;
   void reset() noexcept = delete;
   void stop() noexcept;
 
-  template <time_unit Target = time_unit::MILLI_SECONDS>
-  void sub_task(std::string_view desc, const std::function<void()>& callable) noexcept {
-    _sub_task_impl(desc, _measure_callable_time_ms(callable), Target);
+  template <TimeUnit Target = TimeUnit::MilliSeconds>
+  void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
+    _subTaskImpl(desc, _measureCallableTimeMS(callable), Target);
   }
 
-  void sub_task(std::string_view desc, const std::function<void()>& callable) noexcept;
+  void subTask(std::string_view desc, const std::function<void()>& callable) noexcept;
+
+  template <TimeUnit>
+  static double measure(std::string_view, const std::function<void()>&) = delete;
+
+  template <TimeUnit>
+  static void benchmark(std::string_view, const std::function<void()>&, uint32_t) = delete;
 };
 
 } // namespace warp
