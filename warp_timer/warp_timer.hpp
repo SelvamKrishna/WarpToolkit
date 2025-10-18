@@ -8,6 +8,7 @@
 /// @link https://www.github.com/SelvamKrishna
 /// @date 2025-10-17
 
+#include <iostream>
 #ifndef WARP_TIMER
 #define WARP_TIMER
 
@@ -68,14 +69,9 @@ inline constexpr double time_unit_cast(double elapsed_ms) noexcept {
 /// @brief A high-precision timing and benchmarking utility.
 /// The `timer` class measures elapsed time between `start()` and `stop()`,
 /// or benchmarks callable functions across multiple iterations.
-class WARP_TOOLKIT_API timer final {
+class WARP_TOOLKIT_API timer {
 private:
-  const std::string _DESC;     ///< Description used for log output.
-  std::chrono::time_point<std::chrono::high_resolution_clock> _start;  ///< Start timestamp.
-  const time_unit _TIME_UNIT;  ///< Current time unit.
-  bool _is_running {true};      ///< Whether the timer is currently active.
-
-#pragma region /// Internal Helpers
+#pragma region /// Helpers
 
   /// @brief Print a single elapsed-time log entry.
   /// @param desc   Description or tag of the timed section.
@@ -89,6 +85,15 @@ private:
   /// @param unit   Display unit.
   static void _log_benchmark(std::string_view desc, std::vector<double> results, time_unit unit) noexcept;
 
+#pragma endregion /// Helpers
+protected:
+#pragma region /// Inheritance support
+
+  const std::string _DESC;     ///< Description used for log output.
+  std::chrono::time_point<std::chrono::high_resolution_clock> _start;  ///< Start timestamp.
+  const time_unit _TIME_UNIT;  ///< Current time unit.
+  bool _is_running {true};     ///< Whether the timer is currently active.
+
   /// @brief Calculate elapsed time since the last `start()` call.
   /// @return Elapsed time in the configured time unit.
   [[nodiscard]] double _get_time_since_start() const noexcept;
@@ -98,7 +103,9 @@ private:
   /// @return Elapsed time in milliseconds.
   [[nodiscard]] static double _measure_function_time_ms(const std::function<void()>& callable) noexcept;
 
-#pragma endregion /// Internal Helpers
+  [[nodiscard]] double _stop_and_get_elapsed() noexcept;
+
+#pragma endregion /// Inheritance support
 public:
 #pragma region /// Constructors & Destructors
 
@@ -183,6 +190,108 @@ void timer::default_benchmark(
 }
 
 #pragma endregion /// warp::timer
+
+class WARP_TOOLKIT_API hierarchy_timer final : public timer {
+private:
+  double _sub_task_measure {0};
+
+#pragma region /// Helpers
+
+  void _log_timer_start() const noexcept;
+
+#pragma endregion /// Helpers
+public:
+#pragma region /// Constructors & Destructors
+
+  /// @brief Default-constructs and starts the timer immediately.
+  explicit hierarchy_timer() noexcept;
+
+  /// @brief Construct a named timer with an optional time unit.
+  /// @param description Timer label (for logging).
+  /// @param unit        Time unit for logging (default: milliseconds).
+  explicit hierarchy_timer(
+    std::string description,
+    time_unit unit = time_unit::MILLI_SECONDS
+  ) noexcept;
+
+  /// @brief Destructor automatically stops and logs if still running.
+  ~hierarchy_timer() noexcept;
+
+#pragma endregion /// Constructors & Destructors
+#pragma region /// Basic Control Functions
+
+  /// @warning `warp::hierarchy_timer` does not support manual starting
+  void start() noexcept = delete;
+
+  /// @brief Stops the timer and logs the elapsed time.
+  void stop() noexcept;
+
+  /// @warning `warp::hierarchy_timer` does not support manual resetting
+  void reset() noexcept = delete;
+
+#pragma endregion /// Basic Control Functions
+#pragma region /// Sub-task
+
+  template <time_unit InTimeUnit>
+  void sub_task(std::string_view desc, const std::function<void()>& callable) noexcept;
+
+  void sub_task(std::string_view desc, const std::function<void()>& callable) noexcept;
+
+#pragma endregion /// Sub-task
+};
+
+#pragma region /// warp::hierarchy_timer
+
+inline hierarchy_timer::hierarchy_timer() noexcept : timer {} { _log_timer_start(); }
+
+inline hierarchy_timer::hierarchy_timer(
+  std::string description,
+  time_unit unit
+) noexcept : timer {description, unit} { _log_timer_start(); }
+
+template <time_unit InTimeUnit>
+void hierarchy_timer::sub_task(std::string_view desc, const std::function<void()>& callable) noexcept {
+  const double ELAPSED_MS = _measure_function_time_ms(callable);
+  const double MEASURE = internal::time_unit_cast<InTimeUnit>(ELAPSED_MS);
+
+  switch (_TIME_UNIT) {
+    case time_unit::MICRO_SECONDS: _sub_task_measure += ELAPSED_MS * 1000; break;
+    case time_unit::MILLI_SECONDS: _sub_task_measure += ELAPSED_MS; break;
+    case time_unit::SECONDS: _sub_task_measure += ELAPSED_MS / 1000; break;
+    default: break;
+  }
+
+  std::cout
+    << std::format(
+      "  \033[34m[TASK]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n"
+      , MEASURE
+      , internal::time_unit_to_string(InTimeUnit)
+      , desc
+    )
+  ;
+}
+
+inline void hierarchy_timer::sub_task(std::string_view desc, const std::function<void()>& callable) noexcept {
+  const double ELAPSED_MS = _measure_function_time_ms(callable);
+
+  switch (_TIME_UNIT) {
+    case time_unit::MICRO_SECONDS: _sub_task_measure += ELAPSED_MS * 1000; break;
+    case time_unit::MILLI_SECONDS: _sub_task_measure += ELAPSED_MS; break;
+    case time_unit::SECONDS: _sub_task_measure += ELAPSED_MS / 1000; break;
+    default: break;
+  }
+
+  std::cout
+    << std::format(
+      "  \033[34m[TASK]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n"
+      , ELAPSED_MS
+      , internal::time_unit_to_string(_TIME_UNIT)
+      , desc
+    )
+  ;
+}
+
+#pragma endregion /// warp::hierarchy_timer
 
 } /// namespace warp
 
