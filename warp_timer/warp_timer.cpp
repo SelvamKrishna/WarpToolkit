@@ -125,7 +125,7 @@ void timer::reset() noexcept { start(); }
 #pragma region /// warp::hierarchy_timer
 
 void hierarchy_timer::_log_timer_start() const noexcept {
-  std::cout << "\033[34m[TIMER]\033[0m : " << _DESC << " {\n";
+  std::cout << "\033[34m[TIMER]\033[0m : " << _DESC << " {\n\n";
 }
 
 hierarchy_timer::~hierarchy_timer() noexcept {
@@ -134,7 +134,7 @@ hierarchy_timer::~hierarchy_timer() noexcept {
 
 void hierarchy_timer::stop() noexcept {
   const double ELAPSED = _stop_and_get_elapsed();
-  std::cout << "} " << std::format("\033[32m[{:.3f} {}s]\033[0m\n", ELAPSED, internal::time_unit_to_string(_TIME_UNIT));
+  std::cout << "\n} " << std::format("\033[32m[{:.3f} {}s]\033[0m\n", ELAPSED, internal::time_unit_to_string(_TIME_UNIT));
 }
 
 #pragma endregion /// warp::hierarchy_timer
