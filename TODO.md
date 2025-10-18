@@ -9,7 +9,7 @@
 
 ## General
 - [x] **FIX:** `constepxr` warning in `warp::log::tag` factory functions
-- [ ] Reformat and refactor libraries to adapt modern standards 
+- [x] Reformat and refactor libraries to adapt modern standards 
 
 ---
 

@@ -7,6 +7,7 @@
 #include "warp_timer.hpp"
 
 namespace warp {
+#pragma region /// warp::timer
 
 void timer::_log(std::string_view desc, double elapsed, time_unit time_unit) noexcept {
   std::cout
@@ -91,6 +92,21 @@ void timer::_log_benchmark(std::string_view desc, std::vector<double> results, t
   return duration<double, std::milli>(END - START).count();
 }
 
+[[nodiscard]] double timer::_stop_and_get_elapsed() noexcept {
+  if (!_is_running) [[unlikely]] {
+    std::cout
+      << "\033[34m[TIMER]\033[0m\033[33m[WARNING]\033[0m : "
+      << "Trying to stop timer but timer is not running.\n"
+    ;
+
+    return 0.0;
+  }
+
+  const double ELAPSED = _get_time_since_start();
+  _is_running = false;
+  return ELAPSED;
+}
+
 timer::~timer() noexcept { if (_is_running) stop(); }
 
 void timer::start() noexcept {
@@ -99,20 +115,28 @@ void timer::start() noexcept {
 }
 
 void timer::stop() noexcept {
-  if (!_is_running) [[unlikely]] {
-    std::cout
-      << "\033[34m[TIMER]\033[0m\033[33m[WARNING]\033[0m : "
-      << "Trying to stop timer but timer is not running.\n"
-    ;
-
-    return;
-  }
-
-  const double ELAPSED = _get_time_since_start(); // earlier fn call to imrpove accuracy
-  _is_running = false;
+  const double ELAPSED = _stop_and_get_elapsed();
   _log(_DESC, ELAPSED, _TIME_UNIT);
 }
 
 void timer::reset() noexcept { start(); }
+
+#pragma endregion /// warp::timer
+#pragma region /// warp::hierarchy_timer
+
+void hierarchy_timer::_log_timer_start() const noexcept {
+  std::cout << "\033[34m[TIMER]\033[0m : " << _DESC << " {\n";
+}
+
+hierarchy_timer::~hierarchy_timer() noexcept {
+  if (_is_running) stop();
+}
+
+void hierarchy_timer::stop() noexcept {
+  const double ELAPSED = _stop_and_get_elapsed();
+  std::cout << "} " << std::format("\033[32m[{:.3f} {}s]\033[0m\n", ELAPSED, internal::time_unit_to_string(_TIME_UNIT));
+}
+
+#pragma endregion /// warp::hierarchy_timer
 
 } /// namespace warp
