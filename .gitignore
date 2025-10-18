@@ -11,6 +11,7 @@ compile_flags.txt
 */*.o
 */*.dll
 */*.exe
+/build/
 
 # -- Test --
 /test/

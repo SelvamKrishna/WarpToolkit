@@ -20,42 +20,46 @@
 
 namespace warp {
 
-enum class TimeUnit : uint8_t { MicroSeconds, MilliSeconds, Seconds };
+enum class TimeUnit : uint8_t { MicroSeconds, MilliSeconds, Seconds, };
 
 namespace internal {
 
 inline constexpr int unitID(TimeUnit u) noexcept { return static_cast<int>(u); }
 
+/// Conversion Table: [us, ms, s]
 static inline constexpr double TABLE[3][3] {
-  {1.0,       0.001,    0.000001},
-  {1000.0,    1.0,      0.001   },
-  {1'000'000, 1000.0,   1.0     }
+  /*us*/ {1.0,       0.001,    0.000001},
+  /*ms*/ {1000.0,    1.0,      0.001   },
+  /* s*/ {1'000'000, 1000.0,   1.0     },
 };
 
-// Compile-time conversion
+/// Compile-time conversion
 template <TimeUnit Source = TimeUnit::MilliSeconds, TimeUnit Target>
 inline constexpr double convertUnit(double value) noexcept {
   if constexpr (Source == Target) return value;
   return value * TABLE[unitID(Source)][unitID(Target)];
 }
 
-// Runtime conversion
+/// Runtime conversion
 inline double convertUnit(double value, TimeUnit source, TimeUnit target) noexcept {
   if (source == target) return value;
   return value * TABLE[unitID(source)][unitID(target)];
 }
 
+/// Character to represent time unit
 inline constexpr char timeUnitPrefix(TimeUnit u) noexcept {
   const char PREFIX_CHAR[3] { 'u', 'm', '\x00' };
   return PREFIX_CHAR[unitID(u)];
 }
 
+/// Formatted ANSI colored tag-like elapsed string
 inline std::string formatElapsed(double value, TimeUnit u) noexcept {
   return std::format("\033[32m[{:.3f} {}s]\033[0m", value, timeUnitPrefix(u));
 }
 
 } // namespace internal
 
+/// High-precision timing and benchmarking utility.
 class WARP_TOOLKIT_API Timer {
 private:
   static void _logElapsed(std::string_view desc, double elapsed, TimeUnit unit) noexcept;
@@ -69,6 +73,8 @@ protected:
 
   [[nodiscard]] double _getTimeSinceStart() const noexcept;
   [[nodiscard]] double _stopAndGetElapsed() noexcept;
+
+  /// Returns elapsed time in ms
   [[nodiscard]] static double _measureCallableTimeMS(const std::function<void()>& callable) noexcept;
 
 public:
@@ -84,19 +90,21 @@ public:
   void stop() noexcept;
   void reset() noexcept { start(); }
 
+  /// Measures & logs a single callable execution
   template <TimeUnit Target = TimeUnit::MilliSeconds>
   static double measure(std::string_view desc, const std::function<void()>& callable) noexcept {
-    const double elapsed = internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable));
-    _logElapsed(desc, elapsed, Target);
-    return elapsed;
+    const double ELAPSED = internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable));
+    _logElapsed(desc, ELAPSED, Target);
+    return ELAPSED;
   }
 
+  /// Benchmarks callable multiple times and report summary.
   template <TimeUnit Target = TimeUnit::MilliSeconds>
-  static void benchmark(std::string_view desc, const std::function<void()>& callable, uint32_t iterations = 8) noexcept {
+  static void benchmark(std::string_view desc, const std::function<void()>& callable, uint32_t samples = 8) noexcept {
     std::vector<double> results;
-    results.reserve(iterations);
+    results.reserve(samples);
 
-    while (iterations--) results.push_back(
+    while (samples--) results.push_back(
       internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable))
     );
 
@@ -104,6 +112,7 @@ public:
   }
 };
 
+/// Hierarchical timer used for nested or scoped measurements.
 class WARP_TOOLKIT_API HierarchyTimer final : public Timer {
 private:
   double _sub_task_measure {0.0};
@@ -113,6 +122,7 @@ private:
 
 public:
   explicit HierarchyTimer() noexcept : Timer {} { _logTimerStart(); }
+
   explicit HierarchyTimer(std::string description, TimeUnit unit = TimeUnit::MilliSeconds) noexcept
   : Timer {std::move(description), unit} { _logTimerStart(); }
 
@@ -120,13 +130,15 @@ public:
 
   void start() noexcept = delete;
   void reset() noexcept = delete;
-  void stop() noexcept;
+  void stop()  noexcept;
 
+  /// Calls and measures the provided callable
   template <TimeUnit Target = TimeUnit::MilliSeconds>
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
     _subTaskImpl(desc, _measureCallableTimeMS(callable), Target);
   }
 
+  /// Calls and measures the provided callable (uses HierarchyTimer::_UNIT) as time unit
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept;
 
   template <TimeUnit>

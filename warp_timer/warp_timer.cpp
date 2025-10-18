@@ -54,9 +54,9 @@ void Timer::_logBenchmark(std::string_view desc, std::vector<double> results, Ti
   std::cout << std::format(
     ""
     "\033[34m[TIMER][BENCHMARK]\033[0m : {}\n"
-    "\t\033[32m[MEAN]\033[0m   : {:.3f} {}s\n"
-    "\t\033[32m[MEDIAN]\033[0m : {:.3f} {}s\n"
-    "\t\033[32m[MODE]\033[0m   : {:.3f} {}s\n",
+    "  \033[32m[MEAN]\033[0m   : {:.3f} {}s\n"
+    "  \033[32m[MEDIAN]\033[0m : {:.3f} {}s\n"
+    "  \033[32m[MODE]\033[0m   : {:.3f} {}s\n",
     desc, MEAN, U, MEDIAN, U, MODE, U
 );
 }
