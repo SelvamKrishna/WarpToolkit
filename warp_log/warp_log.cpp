@@ -8,18 +8,18 @@ namespace warp::log::internal {
 
 static std::mutex g_console_mutex;
 
-void write_to_console(level lvl, std::string_view pre, std::string_view msg) {
+void writeToConsole(Level lvl, std::string_view pre, std::string_view msg) {
   std::scoped_lock lock{g_console_mutex};
-  std::ostream& os = stream_from_level(lvl);
+  std::ostream& os = streamFromLevel(lvl);
 
   os.write(pre.data(), pre.size());
   os.write("\033[", 2); // ESC prefix
 
   switch (lvl) {
-    case level::INFO:  os.write("32m[INFO]", 9); break;   // Green
-    case level::DEBUG: os.write("36m[DEBUG]", 10); break; // Cyan
-    case level::WARN:  os.write("33m[WARN]", 9); break;   // Yellow
-    case level::ERROR: os.write("31m[ERROR]", 10); break; // Red
+    case Level::Info:  os.write("32m[INFO]", 9); break;   // Green
+    case Level::Debug: os.write("36m[DEBUG]", 10); break; // Cyan
+    case Level::Warn:  os.write("33m[WARN]", 9); break;   // Yellow
+    case Level::Error: os.write("31m[ERROR]", 10); break; // Red
   }
 
   os.write("\033[0m : ", 7);
@@ -28,7 +28,7 @@ void write_to_console(level lvl, std::string_view pre, std::string_view msg) {
   os.flush();
 }
 
-std::string cache_tag_vec(const std::vector<tag>& tags, std::string_view delim) {
+std::string cacheTagVec(const std::vector<Tag>& tags, std::string_view delim) {
   if (tags.empty()) return {};
 
   std::string result = tags[0];
@@ -41,7 +41,7 @@ std::string cache_tag_vec(const std::vector<tag>& tags, std::string_view delim) 
 
 namespace warp::log {
 
-[[nodiscard]] std::string sender::_get_timestamp() const noexcept {
+[[nodiscard]] std::string Sender::_getTimestamp() const noexcept {
   char buf[sizeof("HH:MM:SS")] {};
   const auto now = std::chrono::system_clock::now();
   const std::time_t t = std::chrono::system_clock::to_time_t(now);
