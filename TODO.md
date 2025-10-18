@@ -5,11 +5,10 @@
 |Library  |Version|Status     |Description      |
 |---------|-------|-----------|-----------------|
 |WarpLog  |v1     |Done       |Logging Tool     |
-|WarpTimer|v1     |Done       |Benchmarking Tool|
+|WarpTimer|v2     |In-Progress|Benchmarking Tool|
 
 ## General
-- [x] **FIX:** `constepxr` warning in `warp::log::tag` factory functions
-- [x] Reformat and refactor libraries to adapt modern standards 
+*No tasks available*
 
 ---
 

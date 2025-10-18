@@ -8,6 +8,7 @@
 /// @link https://www.github.com/SelvamKrishna
 /// @date 2025-10-17
 
+#include <iostream>
 #ifndef WARP_TIMER
 #define WARP_TIMER
 
@@ -229,6 +230,14 @@ public:
   void reset() noexcept = delete;
 
 #pragma endregion /// Basic Control Functions
+#pragma region /// Sub-task
+
+  template <time_unit InTimeUnit>
+  void sub_task(std::string_view desc, const std::function<void()>& callable) noexcept;
+
+  void sub_task(std::string_view desc, const std::function<void()>& callable) noexcept;
+
+#pragma endregion /// Sub-task
 };
 
 #pragma region /// warp::hierarchy_timer
@@ -239,6 +248,48 @@ inline hierarchy_timer::hierarchy_timer(
   std::string description,
   time_unit unit
 ) noexcept : timer {description, unit} { _log_timer_start(); }
+
+template <time_unit InTimeUnit>
+void hierarchy_timer::sub_task(std::string_view desc, const std::function<void()>& callable) noexcept {
+  const double ELAPSED_MS = _measure_function_time_ms(callable);
+  const double MEASURE = internal::time_unit_cast<InTimeUnit>(ELAPSED_MS);
+
+  switch (_TIME_UNIT) {
+    case time_unit::MICRO_SECONDS: _sub_task_measure += ELAPSED_MS * 1000; break;
+    case time_unit::MILLI_SECONDS: _sub_task_measure += ELAPSED_MS; break;
+    case time_unit::SECONDS: _sub_task_measure += ELAPSED_MS / 1000; break;
+    default: break;
+  }
+
+  std::cout
+    << std::format(
+      "  \033[34m[TASK]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n"
+      , MEASURE
+      , internal::time_unit_to_string(InTimeUnit)
+      , desc
+    )
+  ;
+}
+
+inline void hierarchy_timer::sub_task(std::string_view desc, const std::function<void()>& callable) noexcept {
+  const double ELAPSED_MS = _measure_function_time_ms(callable);
+
+  switch (_TIME_UNIT) {
+    case time_unit::MICRO_SECONDS: _sub_task_measure += ELAPSED_MS * 1000; break;
+    case time_unit::MILLI_SECONDS: _sub_task_measure += ELAPSED_MS; break;
+    case time_unit::SECONDS: _sub_task_measure += ELAPSED_MS / 1000; break;
+    default: break;
+  }
+
+  std::cout
+    << std::format(
+      "  \033[34m[TASK]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n"
+      , ELAPSED_MS
+      , internal::time_unit_to_string(_TIME_UNIT)
+      , desc
+    )
+  ;
+}
 
 #pragma endregion /// warp::hierarchy_timer
 
