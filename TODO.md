@@ -5,15 +5,17 @@
 |Library  |Version|Status     |Description      |
 |---------|-------|-----------|-----------------|
 |WarpLog  |v1     |Done       |Logging Tool     |
-|WarpTimer|v2     |In-Progress|Benchmarking Tool|
+|WarpTimer|v2     |Done       |Benchmarking Tool|
 
 ## General
-*No tasks available*
+
+. *No tasks available*
 
 ---
 
 ## Build System
-*No tasks available*
+
+. *No tasks available*
 
 ---
 

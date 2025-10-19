@@ -4,7 +4,9 @@
 
 #include "warp_log.hpp"
 
-namespace warp::log::internal {
+namespace warp {
+
+namespace internal {
 
 static std::mutex g_console_mutex;
 
@@ -28,7 +30,7 @@ void writeToConsole(Level lvl, std::string_view pre, std::string_view msg) {
   os.flush();
 }
 
-std::string cacheTagVec(const std::vector<Tag>& tags, std::string_view delim) {
+std::string cacheTagVec(const std::vector<LogTag>& tags, std::string_view delim) {
   if (tags.empty()) return {};
 
   std::string result = tags[0];
@@ -37,24 +39,21 @@ std::string cacheTagVec(const std::vector<Tag>& tags, std::string_view delim) {
   return result;
 }
 
-} // namespace warp::log::internal
-
-namespace warp::log {
+} // namespace internal
 
 [[nodiscard]] std::string Sender::_getTimestamp() const noexcept {
-  char buf[sizeof("HH:MM:SS")] {};
-  const auto now = std::chrono::system_clock::now();
-  const std::time_t t = std::chrono::system_clock::to_time_t(now);
+  char buf[sizeof("[HH:MM:SS]")]{};
+  const std::time_t TIME = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   std::tm tm_struct{};
 
   #ifdef _WIN32
-    localtime_s(&tm_struct, &t);
+  localtime_s(&tm_struct, &TIME);
   #else
-    localtime_r(&t, &tm_struct);
+  localtime_r(&TIME, &tm_struct);
   #endif
 
   std::strftime(buf, sizeof(buf), "[%H:%M:%S]", &tm_struct);
-  return buf;
+  return std::string{buf};
 }
 
-} // namespace warp::log
+} // namespace warp

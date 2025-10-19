@@ -1,8 +1,8 @@
-# -- IDE Settings -- 
+# -- IDE Settings --
 /.vscode/
 compile_flags.txt
 
-# -- Build Artifacts -- 
+# -- Build Artifacts --
 *.a
 *.o
 *.dll
