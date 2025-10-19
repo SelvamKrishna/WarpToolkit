@@ -47,7 +47,7 @@ A minimal logging library for C++ 20 and above with ANSI color support.
 | Easy Integration | Simple API for integrating into existing projects. |
 | Timestamp Logging | Option to include timestamps in log messages. |
 
-### `warp::log` Showcase
+### Warp Log Showcase
 
 ```cpp
 using namespace warp; // For brevity
@@ -77,7 +77,7 @@ messenger2.warn("Unable to locate resource: {}", resource_path);
 messenger2.err("Failed to load plugin. Terminating...");
 ```
 
-### Making Custom `warp::log::Tag`
+### Making Custom `warp::LogTag`
 
 ```cpp
 // Creates a custom log tag combining a name and address in the format [name@address].
