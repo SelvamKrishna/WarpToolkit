@@ -3,7 +3,6 @@ import subprocess
 import platform
 from pathlib import Path
 import colorama
-from typing import Callable
 
 HELP, FLAGS = [
     ["l [warp_libname]", "build specific library"],
@@ -67,6 +66,8 @@ class Command:
         self.is_clean  : bool = "--c" in sys.argv
         self.is_static : bool = "--static" in sys.argv
         self.is_shared : bool = not self.is_static
+
+    def is_valid_run(self) -> bool: return self.is_run and self.cmd in {'t', 'f'}
 
 SHELL = TerminalLink()
 
@@ -136,10 +137,10 @@ if __name__ == "__main__":
     if inp.is_clean: Utils.clean()
 
     match inp.cmd:
-        case 'h': SHELL.usage()
-        case 't': Build.build_test(inp.arg)
-        case 'f': Build.build_final(inp.arg, inp.is_static)
-        case 'a': Build.build_lib(BUILD_ALL_CMD, inp.is_static)
-        case 'l': Build.build_lib(inp.arg, inp.is_static)
+        case 'h' | "help"  : SHELL.usage()
+        case 't' | "test"  : Build.build_test(inp.arg)
+        case 'f' | "final" : Build.build_final(inp.arg, inp.is_static)
+        case 'a' | "all"   : Build.build_lib(BUILD_ALL_CMD, inp.is_static)
+        case 'l' | "lib"   : Build.build_lib(inp.arg, inp.is_static)
 
-    if inp.is_run and inp.cmd in {'t', 'f'}: SHELL.run([".\\" + str(TEST_BIN)])
+    if inp.is_valid_run(): SHELL.run([".\\" + str(TEST_BIN)])
