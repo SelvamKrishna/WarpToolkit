@@ -23,26 +23,23 @@ CXXFLAGS: list[str] = ["g++", "-std=c++20", "-O3", "-Wall", "-Wextra", "-I."]
 TEST_SRC: list[Path] = list(Path("test").glob("*.cpp"))
 TEST_BIN: Path       = Path("test/prog")
 
+BUILD_ALL_CMD: str = "warp_toolkit"
+
 match platform.system():
     case "Windows": SHARED_EXT, SHARED_FLAGS = "dll",   ["-shared"]
     case "Darwin":  SHARED_EXT, SHARED_FLAGS = "dylib", ["-fPIC", "-shared"]
     case _:         SHARED_EXT, SHARED_FLAGS = "so",    ["-fPIC", "-shared"]
 
-class ShellLink:
+class TerminalLink:
     def __init__(self): colorama.init(autoreset=True)
 
     @staticmethod
-    def _msg(color: str, tag: str, msg: str | list[str]):
-        msgs = msg if isinstance(msg, list) else [msg]
-        [
-            print(f"{color}{tag}{colorama.Style.RESET_ALL}: {line}")
-            for m in msgs for line in str(m).splitlines()
-        ]
+    def _msg(color: str, tag: str, msg: str): print(f"{color}{tag}{colorama.Style.RESET_ALL} {msg}")
 
-    def info  (self, msg: str | list[str]): self._msg(colorama.Fore.CYAN,   "[INFO]", msg)
-    def ok    (self, msg: str | list[str]): self._msg(colorama.Fore.GREEN,  "[OK]",   msg)
-    def warn  (self, msg: str | list[str]): self._msg(colorama.Fore.YELLOW, "[WARN]", msg)
-    def error (self, msg: str | list[str], throw_err: bool = False):
+    def info  (self, msg: str): self._msg(colorama.Fore.CYAN,   "[INFO]", msg)
+    def ok    (self, msg: str): self._msg(colorama.Fore.GREEN,  "[OK]",   msg)
+    def warn  (self, msg: str): self._msg(colorama.Fore.YELLOW, "[WARN]", msg)
+    def error (self, msg: str, throw_err: bool = False):
         self._msg(colorama.Fore.RED,    "[ERR]",  msg)
         if throw_err: raise ValueError(msg)
 
@@ -50,7 +47,6 @@ class ShellLink:
         print(f"{colorama.Fore.BLUE}$ {' '.join(cmd)}{colorama.Style.RESET_ALL}")
         try: subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError as e: self.error(f"Command failed :{e.returncode}", True)
-        else: self.ok("Command completed successfully.")
 
     def usage(self, err_code: int = 0):
         print(f"{colorama.Style.BRIGHT}USAGE:{colorama.Style.RESET_ALL}")
@@ -63,50 +59,6 @@ class ShellLink:
 
         sys.exit(err_code)
 
-SHELL = ShellLink()
-
-class CompUtil:
-    @staticmethod
-    def collect_src(lib: str) -> list[Path]:
-        return [
-            cpp for f in Path(".").glob("warp_*") if f.is_dir() for cpp in f.glob("*.cpp")
-        ] if lib == "toolkit" else list(Path(f"{lib}").glob("*.cpp"))
-
-    @staticmethod
-    def compile_sources(srcs: list[Path]) -> list[Path]:
-        objs = []
-        for src in srcs:
-            obj = src.with_suffix(".o")
-            SHELL.run([*CXXFLAGS, "-c", str(src), "-o", str(obj)])
-            objs.append(obj)
-
-        return objs
-
-    @staticmethod
-    def make_static_lib(lib_name: str, srcs: list[Path], out_path: Path = Path(".")) -> Path:
-        SHELL.info(f"Building static library: lib{lib_name}.a")
-        SHELL.run(["ar", "rcs", str(out_path), *map(str, CompUtil.compile_sources(srcs))])
-        SHELL.ok(f"Built {lib_name}")
-
-        return out_path
-
-    @staticmethod
-    def make_shared_lib(lib_name: str, srcs: list[Path], out_path: Path = Path(".")) -> Path:
-        SHELL.info(f"Building shared library: lib{lib_name}.{SHARED_EXT}")
-        SHELL.run([*CXXFLAGS, *SHARED_FLAGS, *map(str, CompUtil.compile_sources(srcs)), "-o", str(out_path)])
-        SHELL.ok(f"Built {lib_name}")
-
-        return out_path
-
-    @staticmethod
-    def clean():
-        [
-            path.unlink() or SHELL.info(f"Removing: {path}")
-            for path in Path(".").rglob("*")
-            if path.suffix in {".o", ".a", f".{SHARED_EXT}"}
-        ]
-        SHELL.ok("Clean complete.")
-
 class Command:
     def __init__(self):
         self.cmd: str = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else ""
@@ -116,12 +68,47 @@ class Command:
         self.is_static : bool = "--static" in sys.argv
         self.is_shared : bool = not self.is_static
 
-class BuildSystem:
+SHELL = TerminalLink()
+
+class Utils:
+    @staticmethod
+    def collect_src(lib: str) -> list[Path]:
+        if lib == BUILD_ALL_CMD:
+            return [cpp for f in Path(".").glob("warp_*") if f.is_dir() for cpp in f.glob("*.cpp")]
+        return list(Path(f"{lib}").glob("*.cpp"))
 
     @staticmethod
-    def build_library(
-        lib_name: str, lib_build_fn: Callable[[str, list[Path], Path], Path], out_path: Path = Path(".")
-    ) -> Path: return lib_build_fn(lib_name, CompUtil.collect_src(lib_name), out_path)
+    def compile_srcs(srcs: list[Path]) -> list[Path]:
+        objs = [src.with_suffix(".o") for src in srcs]
+        for src, obj in zip(srcs, objs):
+            SHELL.info(f"Compiling {src} → {obj}")
+            SHELL.run([*CXXFLAGS, "-c", str(src), "-o", str(obj)])
+        return objs
+
+    @staticmethod
+    def clean():
+        for path in Path(".").rglob("*"):
+            if path.suffix in {".o", ".a", f".{SHARED_EXT}"}:
+                SHELL.info(f"Removing: {path}")
+                path.unlink(missing_ok=True)
+        SHELL.ok("Clean complete.")
+
+class Build:
+    @staticmethod
+    def build_lib(lib_name: str, is_static: bool, out_dir: Path = Path(".\\")) -> Path:
+        if not lib_name.startswith("warp_"): SHELL.error(f"{lib_name} is invalid", True)
+
+        objs: list[Path] = Utils.compile_srcs(Utils.collect_src(lib_name))
+        target: Path = out_dir / f"{lib_name}.{'a' if is_static else SHARED_EXT}"
+        SHELL.info(f"Building {"static" if is_static else "shared"} library: {target}")
+
+        SHELL.run(
+            ["ar", "rcs", str(target), *map(str, objs)] if is_static else
+            [*CXXFLAGS, *SHARED_FLAGS, *map(str, objs), "-o", str(target)]
+        )
+
+        SHELL.ok(f"Built {target}")
+        return target
 
     @staticmethod
     def build_test(lib_name: str):
@@ -135,41 +122,24 @@ class BuildSystem:
         shared_lib = Path("test") / f"lib{lib_name}.{SHARED_EXT}"
 
         if not static_lib.exists() and not shared_lib.exists():
-            SHELL.warn(f"No existing libraries for '{lib_name}' found — building {"static" if is_static else "shared"} version.")
-
-            if not BuildSystem.build_library(
-                lib_name,
-                CompUtil.make_static_lib if is_static else CompUtil.make_shared_lib,
-                static_lib if is_static else shared_lib
-            ).exists: SHELL.error(f"Failed to locate or build library for '{lib_name}'", True)
+            if not Build.build_lib(lib_name, is_static, Path("test")).exists:
+                SHELL.error(f"Failed to locate or build library for '{lib_name}'", True)
 
         SHELL.info(f"Linking library: {static_lib if is_static else shared_lib}")
         SHELL.run(
-            [*CXXFLAGS, "-o", str(TEST_BIN), str(TEST_SRC), str(static_lib)] if is_static else
+            [*CXXFLAGS, "-o", str(TEST_BIN), *map(str, TEST_SRC), str(static_lib)] if is_static else
             [*CXXFLAGS, "-Ltest", f"-l{lib_name}", "-o", str(TEST_BIN), *map(str, TEST_SRC)]
         )
 
-    @staticmethod
-    def run():
-        inp = Command()
-        if inp.is_clean: CompUtil.clean()
-
-        match inp.cmd:
-            case 'h': SHELL.usage()
-            case 't': BuildSystem.build_test(inp.arg)
-            case 'f': BuildSystem.build_final(inp.arg, inp.is_static)
-            case 'a': BuildSystem.build_library(
-                "toolkit",
-                CompUtil.make_static_lib if inp.is_static else CompUtil.make_shared_lib,
-                Path("./") / f"toolkit.{'a' if inp.is_static else SHARED_EXT}"
-            )
-            case 'l': BuildSystem.build_library(
-                inp.arg,
-                CompUtil.make_static_lib if inp.is_static else CompUtil.make_shared_lib,
-                Path("./") / f"{inp.arg}.{'a' if inp.is_static else SHARED_EXT}"
-            )
-
-        if inp.is_run: SHELL.run(["./" + str(TEST_BIN)])
-
 if __name__ == "__main__":
-    BuildSystem().run()
+    inp = Command()
+    if inp.is_clean: Utils.clean()
+
+    match inp.cmd:
+        case 'h': SHELL.usage()
+        case 't': Build.build_test(inp.arg)
+        case 'f': Build.build_final(inp.arg, inp.is_static)
+        case 'a': Build.build_lib(BUILD_ALL_CMD, inp.is_static)
+        case 'l': Build.build_lib(inp.arg, inp.is_static)
+
+    if inp.is_run and inp.cmd in {'t', 'f'}: SHELL.run([".\\" + str(TEST_BIN)])
