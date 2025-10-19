@@ -1,161 +1,156 @@
-# Warp Toolkit
+# WarpToolkit
 
-Warp Toolkit is a collection of high-performance, general-purpose utility libraries for C++.
-
-## Overview
-- **[WarpLog](#warp-log):** A lightweight, high-performance logging library
-- **[WarpTimer](#warp-timer):** A lightweight, high-performance timing and benchmarking library
+**WarpToolkit** is a lightweight, high-performance C++ utility library for timing, logging, and benchmarking.
+It provides modern C++ utilities like high-resolution timers, hierarchical task timing, and flexible logging with ANSI color support.
 
 ---
 
-## Warp Log
+## Features
 
-Warp Log is a **logging** library designed for C++ projects.
-It supports colorized output, tag-based context, optional runtime timestamps, and thread-safe console logging.
+### [**warp_log**](warp-log) : Logging Utilities
 
----
+- Flexible, ANSI-colored logging via simple API.
+- Easy integration with existing code.
 
-### Features
-- **Multiple log levels:** `INFO`, `DEBUG`, `WARN`, `ERROR`  
-  Each level is color-coded for improved console readability.  
-- **Thread-safe:** Console output is synchronized using mutexes to prevent interleaved logs in multi-threaded environments.  
-- **High-performance:** Uses minimal allocations and cached tag strings for low overhead.  
-- **Flexible usage:** Supports custom string contexts, single tags, or multiple tags for contextual logging.  
-- **Runtime timestamps:** Optionally log the current time and date with each message.
-- **Cross-platform:** Works on Windows, Linux, and any ANSI-compatible terminal.
+### [**warp_timer**](warp-timer) : Timing Utilities
+
+- High-resolution timers (`timer`) with auto-start and automatic logging.
+- Hierarchical timers (`hierarchy_timer`) for nested subtasks.
+- Function benchmarking with configurable iterations.
 
 ---
 
-### Usage
+## Installation
 
-| Component           | Description                                                  |
-|---------------------|--------------------------------------------------------------|
-| `warp::log::level`  | Enum defining log levels (`INFO`, `DEBUG`, `WARN`, `ERROR`)  |
-| `warp::log::tag`    | Simple string representing a tag                             |
-| `warp::log::sender` | Logger instance that outputs formatted messages with context |
+Clone the repository:
 
-
-#### `sender` with a custom string context
-```cpp
-warp::log::sender logger {"SYSTEM"};
+```shell
+git clone https://github.com/SelvamKrishna/WarpToolkit.git
+cd WarpToolkit
 ```
 
-#### `sender` With a single tag
-```cpp
-warp::log::sender logger {warp::log::make_default_tag("[ENGINE]")};
+Get further build instructions:
+
+```shell
+python build.py help
 ```
 
-#### `sender` With multiple tags
+---
+
+## Warp Log v1.0
+
+A minimal logging library for C++ 20 and above with ANSI color support.
+
+| Feature | Description |
+| ------- | ----------- |
+| ANSI Colors | Supports colored output for better log readability. |
+| Easy Integration | Simple API for integrating into existing projects. |
+| Timestamp Logging | Option to include timestamps in log messages. |
+
+### `warp::log` Showcase
+
 ```cpp
-std::vector<warp::log::tag> tags {
-    warp::log::make_default_tag("[ENGINE]"),
-    warp::log::make_default_tag("[SCENE_SYS]")
+using namespace warp; // For brevity
+
+Sender messenger1 {tag_factory::makeDefault("[HELLO]")}; // Default tag
+messenger1.allowTimestampLogging(true);
+messenger1.setTimestampColor(ANSIFore::Yellow);
+
+messenger1.info("Hello World"); // [HH:MM:SS][HELLO][INFO] : Hello World
+
+// Multiple tags
+Sender messenger2 {
+    {
+        tag_factory::makeColored(ANSIFore::Blue, "[ENGINE]"),
+        tag_factory::makeColored(ANSIFore::Cyan, "[SYSTEM]"),
+    },
+    true // Enable timestamp logging at construction
 };
 
-warp::log::sender logger {tags};
+// Sample log messages
+messenger2.info("System Version: {}", getSystemVersion());
+messenger2.dbg("System Capacity: {}", getSystemCapacity());
+
+std::string resource_path = "assets/texture.png"; // Example resource path
+messenger2.warn("Unable to locate resource: {}", resource_path);
+
+messenger2.err("Failed to load plugin. Terminating...");
 ```
 
-#### Logging to console with a `sender`
+### Making Custom `warp::log::Tag`
 
 ```cpp
-logger.info("System initialized."); // Logging information
-logger.dbg("Time took for initialization: {}.", timer.time_took()); // Debugging
-logger.warn("Audio plugin not found."); // Logging warnings
-logger.info("Unable to load audio {}.", audio_file_name); // Logging Errors
-
-// Enable runtime timestamps
-logger.log_timestamp(true);
-logger.info("Logged with timestamp.");
-```
-
----
-
-## Warp Timer
-
-Warp Timer is a **timing and benchmarking utility** designed for real-time applications, profiling tools, and performance-sensitive C++ systems.
-
----
-
-### Features
-
-- **High precision:** Built on `std::chrono::high_resolution_clock` for sub-microsecond accuracy.  
-- **Colorized output:** Uses ANSI escape sequences to visually distinguish timing logs.  
-- **Benchmarking tools:** Run multiple iterations and view mean, median, and mode performance data.  
-- **Flexible units:** Measure time in microseconds, milliseconds, or seconds.  
-- **RAII-friendly:** Automatically logs elapsed time on destruction.
-
----
-
-### Usage
-
-| Component                    | Description                                                               |
-|------------------------------|---------------------------------------------------------------------------|
-| `warp::timer`                | Main class for timing and benchmarking.                                   |
-| `warp::time_unit`            | Enum specifying time units (`MICRO_SECONDS`, `MILLI_SECONDS`, `SECONDS`). |
-| `timer::measure_function()`  | Measures the execution time of a callable function.                       |
-| `timer::default_benchmark()` | Runs repeated measurements and reports benchmark statistics.              |
-
-#### Timing functions and code blocks
-```cpp
-void matrix_multiply(size_t n) {
-	warp::timer t0 { // Constructed timer is pushed into the function stack
-		std::format("Overall Matrix Multiplication of {}x{} matrix", n, n),
-		warp::time_unit::MICRO_SECONDS // Timer will use micro seconds as unit of time
-	};
-
-	std::vector<std::vector<double>> A(n, std::vector<double>(n, 0.0));
-	std::vector<std::vector<double>> B(n, std::vector<double>(n, 0.0));
-	std::vector<std::vector<double>> C(n, std::vector<double>(n, 0.0));
-	
-	{ // Code blocks created to carry out designated task
-		warp::timer t1 {"Matrix RNG Population", warp::time_unit::MICRO_SECONDS};
-		std::mt19937 rng(std::random_device{}());
-		std::uniform_real_distribution<double> dist(0.0, 1.0);
-
-		for (size_t i = 0; i < n; ++i)
-			for (size_t j = 0; j < n; ++j) {
-				A[i][j] = dist(rng);
-				B[i][j] = dist(rng);
-			}
-
-		// Timer t1 is stopped and destroyed
-	}
-
-	{ // Code blocks created to carry out designated task
-		warp::timer t2 {"Matrix Mutiplication", warp::time_unit::MICRO_SECONDS};
-
-		for (size_t i = 0; i < n; ++i)
-			for (size_t j = 0; j < n; ++j)
-				for (size_t k = 0; k < n; ++k)
-					C[i][j] += A[i][k] * B[k][j];
-
-		// Timer t2 is stopped and destroyed
-	}
-
-	// Timer t0 is stopped and destroyed
+// Creates a custom log tag combining a name and address in the format [name@address].
+warp::LogTag makeNameAddrTag(std::string_view name, std::string_view addr) {
+  return std::format("[{}@{}]", name, addr); // A log tag is just a std::string
 }
 ```
 
-#### Measuring and Benchmarking with builtin tools
-```cpp
-// Size of the matrix to multiply
-size_t n = 100;
+---
 
-// Measure and log the execution time of a single matrix multiplication
-warp::timer::measure_function<warp::time_unit::MICRO_SECONDS>(
-    std::format("Single multiplication of a {}x{} matrix", n, n),
-    [&n] { matrix_multiply(n); }
+## Warp Timer v2.0
+
+A high-resolution timing library for C++ 20 and above with hierarchical task timing.
+
+| Feature | Description |
+| ------- | ----------- |
+| High-Resolution Timers | Provides accurate timing for code execution. |
+| Hierarchical Timing | Supports nested timers for detailed performance analysis. |
+| Function Benchmarking | Allows benchmarking of functions with configurable iterations. |
+
+---
+
+### `warp::Timer` Showcase
+
+```cpp
+using namespace warp; // For brevity
+
+{
+    Timer t0("Subtask 1"); // Create timer
+    // simulate work
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+} // End of scope, timer stops and logs time taken
+
+// Create timer with custom time unit
+Timer t1 {"Sort an array", TimeUnit::Milliseconds};
+
+t1.start(); // Manually start the timer
+demo::sortRNGArray(100);
+t1.stop(); // Manually stop the timer
+
+// Measure function execution time
+Timer::measure<TimeUnit::Seconds>(
+    "Multiply 2 matrices", // Task name
+    [] { demo::multiplyRNGMatrix(100); } // Function to measure
 );
 
-uint32_t total_iterations = 100;
-
-// Benchmark the function over multiple runs
-// - Executes the lambda `total_iterations` times
-// - Collects all execution times
-// - Computes and logs Mean, Median, and Mode
-warp::timer::default_benchmark<warp::time_unit::MICRO_SECONDS>(
-    std::format("Benchmark: {}x{} matrix multiplication", n, n),
-    [&n] { matrix_multiply(n); },
-    total_iterations
+// Benchmark function over multiple iterations
+Timer::benchmark<TimeUnit::Seconds>(
+    "Multiply 2 matrices",
+    [] { demo::multiplyRNGMatrix(100); },
+    20 // Sample size
 );
 ```
+
+### `warp::HierarchyTimer` Showcase
+
+```cpp
+using namespace warp; // For brevity
+
+void demo::loadStuff() {
+    HierarchyTimer ht {"Main Task"}; // Create main hierarchical timer
+
+    // Subtask 1
+    ht.subTask("Load Texture", [&] {
+        render::loadTexture("texture.png");
+    });
+
+    // Subtask 2 with custom time unit
+    ht.subTask<TimeUnit::Microseconds>("Load Music", [&] {
+        audio::loadMusic("music.mp3");
+    });
+
+} // Main Task ends, logs hierarchical timing information
+```
+
+---

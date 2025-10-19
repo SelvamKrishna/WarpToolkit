@@ -1,16 +1,14 @@
 #pragma once
-
-/// @file warp_timer.hpp
-/// @brief High-precision timing and benchmarking utility with ANSI-colored output.
-/// Provides automatic measurement, benchmarking helpers, and customizable time units.
-/// ---
-/// @author SelvamKrishna
-/// @link https://www.github.com/SelvamKrishna
-/// @date 2025-10-17
-
-#include <iostream>
 #ifndef WARP_TIMER
 #define WARP_TIMER
+
+#include <cstdint>
+#include <chrono>
+#include <vector>
+#include <string>
+#include <functional>
+#include <string_view>
+#include <format>
 
 #ifndef WARP_TOOLKIT_API
   #ifdef _WIN32
@@ -20,279 +18,136 @@
   #endif
 #endif
 
-#include <cstdint>
-#include <chrono>
-#include <vector>
-#include <string>
-#include <functional>
-#include <string_view>
-
 namespace warp {
 
-/// @enum time_unit
-/// @brief Represents supported time units for timing and benchmarking.
-enum class time_unit : uint8_t {
-  MICRO_SECONDS,  ///< Microseconds (µs)
-  MILLI_SECONDS,  ///< Milliseconds (ms)
-  SECONDS         ///< Seconds (s)
-};
+enum class TimeUnit : uint8_t { MicroSeconds, MilliSeconds, Seconds, };
 
 namespace internal {
 
-/// @brief Converts a time unit to its shorthand character representation.
-/// @param unit The time unit.
-/// @return 'u' for microseconds, 'm' for milliseconds, or '\x00' for seconds.
-inline constexpr char time_unit_to_string(time_unit unit) noexcept {
-  switch (unit) {
-    case time_unit::MICRO_SECONDS: return 'u';
-    case time_unit::MILLI_SECONDS: return 'm';
-    case time_unit::SECONDS:       return '\x00';
-    default:                       return '?';
-  }
+inline constexpr int unitID(TimeUnit u) noexcept { return static_cast<int>(u); }
+
+/// Conversion Table: [us, ms, s]
+static inline constexpr double TABLE[3][3] {
+  /*us*/ {1.0,       0.001,    0.000001},
+  /*ms*/ {1000.0,    1.0,      0.001   },
+  /* s*/ {1'000'000, 1000.0,   1.0     },
+};
+
+/// Compile-time conversion
+template <TimeUnit Source = TimeUnit::MilliSeconds, TimeUnit Target>
+inline constexpr double convertUnit(double value) noexcept {
+  if constexpr (Source == Target) return value;
+  return value * TABLE[unitID(Source)][unitID(Target)];
 }
 
-/// @brief Converts elapsed milliseconds into another time unit.
-/// @param elapsed_ms Elapsed time in milliseconds.
-/// @return Elapsed time converted into the target unit.
-template <time_unit ToTimeUnit>
-inline constexpr double time_unit_cast(double elapsed_ms) noexcept {
-  switch (ToTimeUnit) {
-    case time_unit::MICRO_SECONDS: return elapsed_ms * 1000.0; // ms → µs
-    case time_unit::SECONDS:       return elapsed_ms / 1000.0; // ms → s
-    default:                       return elapsed_ms;          // stays in ms
-  }
+/// Runtime conversion
+inline double convertUnit(double value, TimeUnit source, TimeUnit target) noexcept {
+  if (source == target) return value;
+  return value * TABLE[unitID(source)][unitID(target)];
 }
 
-} /// namespace internal
+/// Character to represent time unit
+inline constexpr char timeUnitPrefix(TimeUnit u) noexcept {
+  const char PREFIX_CHAR[3] { 'u', 'm', '\x00' };
+  return PREFIX_CHAR[unitID(u)];
+}
 
-/// @class timer
-/// @brief A high-precision timing and benchmarking utility.
-/// The `timer` class measures elapsed time between `start()` and `stop()`,
-/// or benchmarks callable functions across multiple iterations.
-class WARP_TOOLKIT_API timer {
+/// Formatted ANSI colored tag-like elapsed string
+inline std::string formatElapsed(double value, TimeUnit u) noexcept {
+  return std::format("\033[32m[{:.3f} {}s]\033[0m", value, timeUnitPrefix(u));
+}
+
+} // namespace internal
+
+/// High-precision timing and benchmarking utility.
+class WARP_TOOLKIT_API Timer {
 private:
-#pragma region /// Helpers
+  static void _logElapsed(std::string_view desc, double elapsed, TimeUnit unit) noexcept;
+  static void _logBenchmark(std::string_view desc, std::vector<double> results, TimeUnit unit) noexcept;
 
-  /// @brief Print a single elapsed-time log entry.
-  /// @param desc   Description or tag of the timed section.
-  /// @param elapsed Time value in the specified unit.
-  /// @param unit   Time unit used for display.
-  static void _log(std::string_view desc, double elapsed, time_unit unit) noexcept;
-
-  /// @brief Print benchmark statistics (mean, median, mode).
-  /// @param desc   Description of the benchmark.
-  /// @param results Vector of raw results (in milliseconds).
-  /// @param unit   Display unit.
-  static void _log_benchmark(std::string_view desc, std::vector<double> results, time_unit unit) noexcept;
-
-#pragma endregion /// Helpers
 protected:
-#pragma region /// Inheritance support
+  const std::string _DESC;
+  std::chrono::time_point<std::chrono::high_resolution_clock> _start;
+  const TimeUnit _UNIT;
+  bool _is_running {true};
 
-  const std::string _DESC;     ///< Description used for log output.
-  std::chrono::time_point<std::chrono::high_resolution_clock> _start;  ///< Start timestamp.
-  const time_unit _TIME_UNIT;  ///< Current time unit.
-  bool _is_running {true};     ///< Whether the timer is currently active.
+  [[nodiscard]] double _getTimeSinceStart() const noexcept;
+  [[nodiscard]] double _stopAndGetElapsed() noexcept;
 
-  /// @brief Calculate elapsed time since the last `start()` call.
-  /// @return Elapsed time in the configured time unit.
-  [[nodiscard]] double _get_time_since_start() const noexcept;
+  /// Returns elapsed time in ms
+  [[nodiscard]] static double _measureCallableTimeMS(const std::function<void()>& callable) noexcept;
 
-  /// @brief Measure execution time of a callable (in milliseconds).
-  /// @param callable The function or lambda to execute.
-  /// @return Elapsed time in milliseconds.
-  [[nodiscard]] static double _measure_function_time_ms(const std::function<void()>& callable) noexcept;
-
-  [[nodiscard]] double _stop_and_get_elapsed() noexcept;
-
-#pragma endregion /// Inheritance support
 public:
-#pragma region /// Constructors & Destructors
+  explicit Timer() noexcept
+  : _DESC {""}, _start {std::chrono::high_resolution_clock::now()}, _UNIT {TimeUnit::MilliSeconds} {}
 
-  /// @brief Default-constructs and starts the timer immediately.
-  explicit timer() noexcept
-  : _DESC {""}
-  , _start {std::chrono::high_resolution_clock::now()}
-  , _TIME_UNIT {time_unit::MILLI_SECONDS} {}
+  explicit Timer(std::string description, TimeUnit unit = TimeUnit::MilliSeconds) noexcept
+  : _DESC {std::move(description)}, _start {std::chrono::high_resolution_clock::now()}, _UNIT {unit} {}
 
-  /// @brief Construct a named timer with an optional time unit.
-  /// @param description Timer label (for logging).
-  /// @param unit        Time unit for logging (default: milliseconds).
-  explicit timer(std::string description, time_unit unit = time_unit::MILLI_SECONDS) noexcept
-  : _DESC {std::move(description)}
-  , _start {std::chrono::high_resolution_clock::now()}
-  , _TIME_UNIT {unit} {}
+  ~Timer() noexcept;
 
-  /// @brief Destructor automatically stops and logs if still running.
-  ~timer() noexcept;
-
-#pragma endregion /// Constructors & Destructors
-#pragma region /// Basic Control Functions
-
-  /// @brief Starts (or restarts) the timer.
   void start() noexcept;
-
-  /// @brief Stops the timer and logs the elapsed time.
   void stop() noexcept;
+  void reset() noexcept { start(); }
 
-  /// @brief Resets and restarts the timer
-  void reset() noexcept;
+  /// Measures & logs a single callable execution
+  template <TimeUnit Target = TimeUnit::MilliSeconds>
+  static double measure(std::string_view desc, const std::function<void()>& callable) noexcept {
+    const double ELAPSED = internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable));
+    _logElapsed(desc, ELAPSED, Target);
+    return ELAPSED;
+  }
 
-#pragma endregion /// Basic Control Functions
-#pragma region /// Benchmarking Tools
+  /// Benchmarks callable multiple times and report summary.
+  template <TimeUnit Target = TimeUnit::MilliSeconds>
+  static void benchmark(std::string_view desc, const std::function<void()>& callable, uint32_t samples = 8) noexcept {
+    std::vector<double> results;
+    results.reserve(samples);
 
-  /// @brief Measure execution time of a callable in a specified unit.
-  /// @tparam InTimeUnit Output time unit.
-  /// @param desc     Label or description for the measurement.
-  /// @param callable Function to execute.
-  /// @return Elapsed time in the specified unit.
-  template <time_unit InTimeUnit>
-  static double measure_function(std::string_view desc, const std::function<void()>& callable) noexcept;
+    while (samples--) results.push_back(
+      internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable))
+    );
 
-  /// @brief Benchmark a callable function multiple times and summarize results.
-  /// @tparam InTimeUnit Output time unit.
-  /// @param desc        Label or description for the benchmark.
-  /// @param callable    Function or lambda to benchmark.
-  /// @param total_iterations Number of iterations to perform (default = 8).
-  template <time_unit InTimeUnit>
-  static void default_benchmark(
-    std::string_view desc,
-    const std::function<void()>& callable,
-    uint32_t total_iterations = 8
-  ) noexcept;
-
-#pragma endregion /// Benchmarking Tools
+    _logBenchmark(desc, std::move(results), Target);
+  }
 };
 
-#pragma region /// warp::timer
-
-template <time_unit InTimeUnit>
-double timer::measure_function(std::string_view desc, const std::function<void()>& callable) noexcept {
-  const double ELAPSED {internal::time_unit_cast<InTimeUnit>(_measure_function_time_ms(callable))};
-  _log(desc, ELAPSED, InTimeUnit);
-  return ELAPSED;
-}
-
-template <time_unit InTimeUnit>
-void timer::default_benchmark(
-  std::string_view desc,
-  const std::function<void()>& callable,
-  uint32_t total_iterations
-) noexcept {
-  std::vector<double> results;
-  results.reserve(total_iterations);
-
-  while (total_iterations--) results.push_back(
-    internal::time_unit_cast<InTimeUnit>(_measure_function_time_ms(callable))
-  );
-
-  _log_benchmark(desc, results, InTimeUnit);
-}
-
-#pragma endregion /// warp::timer
-
-class WARP_TOOLKIT_API hierarchy_timer final : public timer {
+/// Hierarchical timer used for nested or scoped measurements.
+class WARP_TOOLKIT_API HierarchyTimer final : public Timer {
 private:
-  double _sub_task_measure {0};
+  double _sub_task_measure {0.0};
 
-#pragma region /// Helpers
+  void _logTimerStart() const noexcept;
+  void _subTaskImpl(std::string_view desc, double elapsed_ms, TimeUnit display_unit) noexcept;
 
-  void _log_timer_start() const noexcept;
-
-#pragma endregion /// Helpers
 public:
-#pragma region /// Constructors & Destructors
+  explicit HierarchyTimer() noexcept : Timer {} { _logTimerStart(); }
 
-  /// @brief Default-constructs and starts the timer immediately.
-  explicit hierarchy_timer() noexcept;
+  explicit HierarchyTimer(std::string description, TimeUnit unit = TimeUnit::MilliSeconds) noexcept
+  : Timer {std::move(description), unit} { _logTimerStart(); }
 
-  /// @brief Construct a named timer with an optional time unit.
-  /// @param description Timer label (for logging).
-  /// @param unit        Time unit for logging (default: milliseconds).
-  explicit hierarchy_timer(
-    std::string description,
-    time_unit unit = time_unit::MILLI_SECONDS
-  ) noexcept;
+  ~HierarchyTimer() noexcept;
 
-  /// @brief Destructor automatically stops and logs if still running.
-  ~hierarchy_timer() noexcept;
-
-#pragma endregion /// Constructors & Destructors
-#pragma region /// Basic Control Functions
-
-  /// @warning `warp::hierarchy_timer` does not support manual starting
   void start() noexcept = delete;
-
-  /// @brief Stops the timer and logs the elapsed time.
-  void stop() noexcept;
-
-  /// @warning `warp::hierarchy_timer` does not support manual resetting
   void reset() noexcept = delete;
+  void stop()  noexcept;
 
-#pragma endregion /// Basic Control Functions
-#pragma region /// Sub-task
+  /// Calls and measures the provided callable
+  template <TimeUnit Target = TimeUnit::MilliSeconds>
+  void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
+    _subTaskImpl(desc, _measureCallableTimeMS(callable), Target);
+  }
 
-  template <time_unit InTimeUnit>
-  void sub_task(std::string_view desc, const std::function<void()>& callable) noexcept;
+  /// Calls and measures the provided callable (uses HierarchyTimer::_UNIT) as time unit
+  void subTask(std::string_view desc, const std::function<void()>& callable) noexcept;
 
-  void sub_task(std::string_view desc, const std::function<void()>& callable) noexcept;
+  template <TimeUnit>
+  static double measure(std::string_view, const std::function<void()>&) = delete;
 
-#pragma endregion /// Sub-task
+  template <TimeUnit>
+  static void benchmark(std::string_view, const std::function<void()>&, uint32_t) = delete;
 };
 
-#pragma region /// warp::hierarchy_timer
+} // namespace warp
 
-inline hierarchy_timer::hierarchy_timer() noexcept : timer {} { _log_timer_start(); }
-
-inline hierarchy_timer::hierarchy_timer(
-  std::string description,
-  time_unit unit
-) noexcept : timer {description, unit} { _log_timer_start(); }
-
-template <time_unit InTimeUnit>
-void hierarchy_timer::sub_task(std::string_view desc, const std::function<void()>& callable) noexcept {
-  const double ELAPSED_MS = _measure_function_time_ms(callable);
-  const double MEASURE = internal::time_unit_cast<InTimeUnit>(ELAPSED_MS);
-
-  switch (_TIME_UNIT) {
-    case time_unit::MICRO_SECONDS: _sub_task_measure += ELAPSED_MS * 1000; break;
-    case time_unit::MILLI_SECONDS: _sub_task_measure += ELAPSED_MS; break;
-    case time_unit::SECONDS: _sub_task_measure += ELAPSED_MS / 1000; break;
-    default: break;
-  }
-
-  std::cout
-    << std::format(
-      "  \033[34m[TASK]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n"
-      , MEASURE
-      , internal::time_unit_to_string(InTimeUnit)
-      , desc
-    )
-  ;
-}
-
-inline void hierarchy_timer::sub_task(std::string_view desc, const std::function<void()>& callable) noexcept {
-  const double ELAPSED_MS = _measure_function_time_ms(callable);
-
-  switch (_TIME_UNIT) {
-    case time_unit::MICRO_SECONDS: _sub_task_measure += ELAPSED_MS * 1000; break;
-    case time_unit::MILLI_SECONDS: _sub_task_measure += ELAPSED_MS; break;
-    case time_unit::SECONDS: _sub_task_measure += ELAPSED_MS / 1000; break;
-    default: break;
-  }
-
-  std::cout
-    << std::format(
-      "  \033[34m[TASK]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n"
-      , ELAPSED_MS
-      , internal::time_unit_to_string(_TIME_UNIT)
-      , desc
-    )
-  ;
-}
-
-#pragma endregion /// warp::hierarchy_timer
-
-} /// namespace warp
-
-#endif /// WARP_TIMER
+#endif // WARP_TIMER
