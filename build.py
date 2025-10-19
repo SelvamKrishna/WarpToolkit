@@ -1,176 +1,191 @@
+import sys
 import subprocess
 import platform
-import sys
 from pathlib import Path
 import colorama
 
 
-# Colorized Shell Utilities
+# --- Shell and Logging ---
 class ShellLink:
     def __init__(self):
         colorama.init(autoreset=True)
 
     @staticmethod
-    def __msg_helper__(color: str, pre: str, msg: str):
-        print(f"{color}{pre}{colorama.Style.RESET_ALL}: {msg}")
+    def _msg(color: str, tag: str, msg: str):
+        print(f"{color}{tag}{colorama.Style.RESET_ALL}: {msg}")
 
     @staticmethod
-    def __usage_helper__(cmd: str, desc: str):
+    def _usage(cmd: str, desc: str):
         print(f"  python build.py {colorama.Style.BRIGHT}{cmd}{colorama.Style.RESET_ALL} → {desc}")
 
-    # Logging methods
-    def info(self, msg: str):
-        self.__msg_helper__(colorama.Fore.CYAN, "[INFO]", msg)
-
-    def ok(self, msg: str):
-        self.__msg_helper__(colorama.Fore.GREEN, "[OK]", msg)
-
-    def warn(self, msg: str):
-        self.__msg_helper__(colorama.Fore.YELLOW, "[WARN]", msg)
-
-    def error(self, msg: str):
-        self.__msg_helper__(colorama.Fore.RED, "[ERR]", msg)
-
-    def cmd_echo(self, cmd: list[str]):
-        self.__msg_helper__(colorama.Fore.BLUE, "$", " ".join(cmd))
+    # Log levels
+    def info(self, msg: str): self._msg(colorama.Fore.CYAN, "[INFO]", msg)
+    def ok(self, msg: str): self._msg(colorama.Fore.GREEN, "[OK]", msg)
+    def warn(self, msg: str): self._msg(colorama.Fore.YELLOW, "[WARN]", msg)
+    def error(self, msg: str): self._msg(colorama.Fore.RED, "[ERR]", msg)
 
     def run(self, cmd: list[str]):
-        self.cmd_echo(cmd)
+        print(f"{colorama.Fore.BLUE}$ {' '.join(cmd)}{colorama.Style.RESET_ALL}")
         try:
             subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError as e:
-            self.error(f"Command failed: {e}")
-            sys.exit(1)
+            self.error(f"Command failed with exit code {e.returncode}")
+            sys.exit(e.returncode)
 
-    def log_usage(self):
-        print(f"{colorama.Style.BRIGHT}Usage:{colorama.Style.RESET_ALL}")
-        self.__usage_helper__("[lib name after 'warp_'] [static|shared]", "build specific library")
-        self.__usage_helper__("toolkit [static|shared]", "build combined library")
-        self.__usage_helper__("clean", "remove build artifacts")
+    def usage(self):
+        print(f"{colorama.Style.BRIGHT}Building Tools:{colorama.Style.RESET_ALL}")
+        self._usage("[lib name after 'warp_'] [static|shared]", "build specific library")
+        self._usage("toolkit [static|shared]", "build combined library")
+        self._usage("clean", "remove build artifacts")
+        print(f"{colorama.Style.BRIGHT}Testing Tools:{colorama.Style.RESET_ALL}")
+        self._usage("test [warp_libname]", "compile & run test with library source")
+        self._usage("final [warp_libname]", "compile & run test linked against built library")
         sys.exit(0)
 
 
-# Compiler / Linker Configuration
+# --- Compiler / Linker Config ---
 class CommandConfig:
-    CXX = "g++"
-    CXXFLAGS = ["-std=c++20", "-O3", "-Wall", "-Wextra", "-I."]
-    AR = "ar"
-    ARFLAGS = ["rcs"]
-    LIB_TYPE = {"static", "shared"}
-
     def __init__(self, shell: ShellLink):
         self.shell = shell
+        self.CXX = "g++"
+        self.CXXFLAGS = ["-std=c++20", "-O3", "-Wall", "-Wextra", "-I."]
+        self.AR = "ar"
+        self.ARFLAGS = ["rcs"]
+        self.LIB_TYPE = {"static", "shared"}
 
-        if platform.system() == "Windows":
-            self.shared_ext = "dll"
-            self.shared_flags = ["-shared"]
-        else:
-            self.shared_ext = "so"
-            self.shared_flags = ["-fPIC", "-shared"]
+        match platform.system():
+            case "Windows": self.shared_ext, self.shared_flags = "dll", ["-shared"]
+            case "Darwin": self.shared_ext, self.shared_flags = "dylib", ["-fPIC", "-shared"]
+            case _: self.shared_ext, self.shared_flags = "so", ["-fPIC", "-shared"]
 
-    # Compile source files
-    def compile_sources(self, srcs: list[Path]) -> list[Path]:
-        objs: list[Path] = []
+    # --- Core commands ---
+    def compile(self, src: Path, out: Path):
+        self.shell.info(f"Compiling {src} → {out}")
+        self.shell.run([self.CXX, *self.CXXFLAGS, "-c", str(src), "-o", str(out)])
 
-        for src in srcs:
-            if not src.exists():
-                self.shell.warn(f"Skipping missing file: {src}")
-                continue
-
-            obj = src.with_suffix(".o")
-            self.shell.info(f"Compiling {src} → {obj}")
-            self.shell.run([self.CXX, *self.CXXFLAGS, "-c", str(src), "-o", str(obj)])
-            objs.append(obj)
-
-        return objs
-
-    # Build static library
-    def make_static(self, name: str, objs: list[Path]):
-        out = f"libwarp_{name}.a"
-        self.shell.run([self.AR, *self.ARFLAGS, out, *map(str, objs)])
+    def link_static(self, name: str, objs: list[Path]) -> Path:
+        out = Path(f"libwarp_{name}.a")
+        self.shell.run([self.AR, *self.ARFLAGS, str(out), *map(str, objs)])
         self.shell.ok(f"Built {out}")
+        return out
 
-    # Build shared library
-    def make_shared(self, name: str, objs: list[Path]):
-        out = f"libwarp_{name}.{self.shared_ext}"
-        self.shell.run([self.CXX, *self.CXXFLAGS, *self.shared_flags, "-o", out, *map(str, objs)])
+    def link_shared(self, name: str, objs: list[Path]) -> Path:
+        out = Path(f"libwarp_{name}.{self.shared_ext}")
+        self.shell.run([self.CXX, *self.CXXFLAGS, *self.shared_flags, "-o", str(out), *map(str, objs)])
         self.shell.ok(f"Built {out}")
+        return out
 
-    # Validate presence of source folder
-    def ensure_sources_exist(self, lib: str):
-        folder = Path(f"warp_{lib}")
-        if lib != "toolkit" and not folder.exists():
-            self.shell.error(f"Missing source folder: {folder}")
-            sys.exit(1)
-
-    # Remove artifacts
     def clean(self):
         exts = [".o", ".a", f".{self.shared_ext}"]
         for path in Path(".").rglob("*"):
-            if path.suffix in exts and path.is_file():
+            if path.suffix in exts:
                 self.shell.info(f"Removing: {path}")
                 path.unlink()
         self.shell.ok("Clean complete.")
         sys.exit(0)
 
 
-# Parses and executes build commands
+# --- Build System ---
 class BuildSystem:
     def __init__(self):
         self.shell = ShellLink()
         self.cfg = CommandConfig(self.shell)
+        self.test_src = Path("test/main.cpp")
+        self.test_bin = Path("test/prog")
 
     def parse_args(self):
         args = sys.argv
-
-        # No args or help → show usage
         if len(args) < 2 or args[1] == "help":
-            self.shell.log_usage()
+            self.shell.usage()
+        return args[1], args[2] if len(args) > 2 else None
 
-        cmd = args[1]
+    # --- Helpers ---
+    def collect_sources(self, lib: str) -> list[Path]:
+        folder = Path(f"warp_{lib}")
+        return [
+            cpp for f in Path(".").glob("warp_*") if f.is_dir() for cpp in f.glob("*.cpp")
+        ] if lib == "toolkit" else list(folder.glob("*.cpp"))
 
-        # Clean command → immediate action
+    def compile_sources(self, lib: str) -> list[Path]:
+        srcs = self.collect_sources(lib)
+        objs = []
+        for src in srcs:
+            obj = src.with_suffix(".o")
+            self.cfg.compile(src, obj)
+            objs.append(obj)
+
+        return objs
+
+    # --- Build Modes ---
+    def build_library(self, lib: str, kind: str) -> Path:
+        objs = self.compile_sources(lib)
+        return self.cfg.link_static(lib, objs) if kind == "static" else self.cfg.link_shared(lib, objs)
+
+    def build_test(self, lib_name: str):
+        lib_src = Path(lib_name) / f"{lib_name}.cpp"
+        if not lib_src.exists():
+            self.shell.error(f"Missing library source: {lib_src}")
+            sys.exit(1)
+        cmd = [self.cfg.CXX, *self.cfg.CXXFLAGS, "-o", str(self.test_bin), str(self.test_src), str(lib_src)]
+        self.shell.run(cmd)
+        self.shell.run(["./" + str(self.test_bin)])
+
+    def build_final(self, lib_name: str):
+        lib_base = lib_name.removeprefix("warp_")
+        test_dir = Path("test")
+        test_dir.mkdir(exist_ok=True)
+
+        static_lib = test_dir / f"libwarp_{lib_base}.a"
+        shared_lib = test_dir / f"libwarp_{lib_base}.{self.cfg.shared_ext}"
+
+        # --- auto build missing library ---
+        if not static_lib.exists() and not shared_lib.exists():
+            self.shell.warn(f"No existing libraries for '{lib_name}' found — building shared version.")
+            built = self.build_library(lib_base, "shared")
+            built.replace(shared_lib)
+
+        # --- prefer static, fallback to shared ---
+        if static_lib.exists():
+            self.shell.info(f"Linking static library: {static_lib}")
+            cmd = [self.cfg.CXX, *self.cfg.CXXFLAGS, "-o", str(self.test_bin), str(self.test_src), str(static_lib)]
+        elif shared_lib.exists():
+            self.shell.info(f"Linking shared library: {shared_lib}")
+            cmd = [
+                self.cfg.CXX,
+                *self.cfg.CXXFLAGS,
+                "-Ltest",
+                f"-lwarp_{lib_base}",
+                "-o",
+                str(self.test_bin),
+                str(self.test_src),
+                "-Wl,-rpath,./test",
+            ]
+        else:
+            self.shell.error(f"Failed to locate or build library for '{lib_name}'")
+            sys.exit(1)
+
+        self.shell.run(cmd)
+        self.shell.run(["./" + str(self.test_bin)])
+
+    # --- Entrypoint ---
+    def run(self):
+        cmd, arg = self.parse_args()
+
         if cmd == "clean":
             self.cfg.clean()
 
-        # Validate argument count
-        if len(args) != 3 or args[2] not in self.cfg.LIB_TYPE:
-            self.shell.log_usage()
+        if cmd in {"test", "final"}:
+            if not arg or not arg.startswith("warp_"):
+                self.shell.usage()
+            (self.build_test if cmd == "test" else self.build_final)(arg)
+            return
 
-        return args[1], args[2]
+        if not arg or arg not in self.cfg.LIB_TYPE:
+            self.shell.usage()
 
-    def collect_sources(self, lib: str) -> list[Path]:
-        if lib == "toolkit":
-            # Collect all warp_* source files
-            return [
-                cpp
-                for folder in Path(".").glob("warp_*")
-                if folder.is_dir()
-                for cpp in folder.glob("*.cpp")
-            ]
-        else:
-            folder = Path(f"warp_{lib}")
-            return list(folder.glob("*.cpp"))
-
-    def build(self):
-        lib, kind = self.parse_args()
-        self.cfg.ensure_sources_exist(lib)
-
-        srcs = self.collect_sources(lib)
-        if not srcs:
-            self.shell.error(f"No source files found for '{lib}'")
-            sys.exit(1)
-
-        objs = self.cfg.compile_sources(srcs)
-        if not objs:
-            self.shell.error(f"Failed to produce any object files for '{lib}'")
-            sys.exit(1)
-
-        if kind == "static":
-            self.cfg.make_static(lib, objs)
-        else:
-            self.cfg.make_shared(lib, objs)
+        self.build_library(cmd, arg)
 
 
+# --- Main Entry ---
 if __name__ == "__main__":
-    BuildSystem().build()
+    BuildSystem().run()
