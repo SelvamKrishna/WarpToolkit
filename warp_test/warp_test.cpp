@@ -43,7 +43,7 @@ Registry::Registry() noexcept {
 
 Registry::~Registry() noexcept {
   std::cout << std::format(
-    "\n{} \033[33m[{}/{}]\033[0m\n", '}',
+    "{} \033[33m[{}/{}]\033[0m\n", '}',
     _test_summary.getPassedCases(), _test_summary.getTotalCases()
   ) << std::endl;
 }

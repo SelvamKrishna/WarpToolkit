@@ -87,14 +87,16 @@ public:
   }
 };
 
-#define TEST_SUITE(fn_name) \
-  warp::test::internal::Summary fn_name()
+#define TEST_SUITE(FN) \
+  warp::test::internal::Summary FN()
 
-#define TEST_EQ(suite, condtion) \
-  suite.checkEq(condtion, "("#condtion")")
+#define TEST_EQ(SUITE, ACTUAL, EXPECTED) do { \
+  SUITE.checkEq((ACTUAL) == (EXPECTED), "(" #ACTUAL " == " #EXPECTED ")"); \
+} while(0)
 
-#define TEST_NEQ(suite, condtion) \
-  suite.checkNeq(condtion, "!("#condtion")")
+#define TEST_NEQ(SUITE, ACTUAL, EXPECTED) do { \
+  SUITE.checkNeq((ACTUAL) == (EXPECTED), "!(" #ACTUAL " == " #EXPECTED ")"); \
+} while(0)
 
 } // namespace warp::test
 
