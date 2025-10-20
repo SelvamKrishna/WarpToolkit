@@ -19,6 +19,7 @@ namespace warp::test {
 
 namespace internal {
 
+/// Keeps track of all test cases
 class Summary final {
 private:
   uint64_t _total_case  {0};
@@ -45,10 +46,12 @@ public:
 
 } // namespace internal
 
+/// A evaluates a collection of test cases
 class WARP_TOOLKIT_API Suite final {
 private:
   internal::Summary _test_summary;
 
+  /// Logs test description and result to the console
   static void _logTestCase(bool cond, std::string_view desc) noexcept;
 
 public:
@@ -59,11 +62,12 @@ public:
   void checkEq(bool cond, std::string_view desc) noexcept;
   void checkNeq(bool cond, std::string_view desc) noexcept;
 
-  [[nodiscard]] constexpr internal::Summary close() const noexcept {
+  [[nodiscard]] constexpr internal::Summary getSummary() const noexcept {
     return _test_summary;
   }
 };
 
+/// Master class to handle all test cases
 class WARP_TOOLKIT_API Registry final {
 private:
   internal::Summary _test_summary;
@@ -72,18 +76,25 @@ public:
   explicit Registry() noexcept;
   ~Registry() noexcept;
 
+  /// Evaluates a collection of test suites
   [[nodiscard]] Registry& addCollection(
     std::string_view name,
     std::vector<std::function<internal::Summary()>> suites
   ) noexcept;
 
-  [[nodiscard]] constexpr int close() const noexcept {
+  [[nodiscard]] constexpr int conclude() const noexcept {
     return (_test_summary.getFailedCases() == 0) ? 0 : 1;
   }
 };
 
 #define TEST_SUITE(fn_name) \
   warp::test::internal::Summary fn_name()
+
+#define TEST_EQ(suite, condtion) \
+  suite.checkEq(condtion, "("#condtion")")
+
+#define TEST_NEQ(suite, condtion) \
+  suite.checkNeq(condtion, "!("#condtion")")
 
 } // namespace warp::test
 
