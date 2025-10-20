@@ -166,10 +166,10 @@ It emphasizes **simplicity**, **readability**, and structured output for quick t
 
 | Feature | Description |
 | ------- | ----------- |
-| ANSI Colored Output | Clearly distinguishes test statuses (PASS/FAIL/SUITE) using colored terminal output. |
+| ANSI Colored Output | Clearly distinguishes test statuses using colored terminal output. |
 | Suite-Based Organization | Groups related test cases into Suites for modular and structured testing. |
-|Collections and Registry | Allows grouping multiple suites into Collections and managing them through a central Registry. |
-|Automatic Summaries | Each suite and collection automatically reports passed/failed case counts for clear progress tracking. |
+| Collections and Registry | Allows grouping multiple suites into Collections and managing them through a central Registry. |
+| Automatic Summaries | Each suite and collection automatically reports passed/failed case counts for clear progress tracking. |
 
 ### Creating a test function
 
