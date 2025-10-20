@@ -13,5 +13,6 @@ compile_flags.txt
 */*.exe
 /build/
 
-# -- Test --
+# -- Misc --
 /test/
+*.log
