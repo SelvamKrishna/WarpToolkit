@@ -18,6 +18,12 @@ It provides modern C++ utilities like high-resolution timers, hierarchical task 
 - Hierarchical timers (`hierarchy_timer`) for nested subtasks.
 - Function benchmarking with configurable iterations.
 
+### [**warp_test**](warp-test) : Testing Utilities
+
+- Lightweight and flexible unit testing framework.
+- Supports defining and running test cases with automatic result reporting.
+- Provides hierarchical test organization for complex test suites.
+
 ---
 
 ## Installation
@@ -37,7 +43,7 @@ python build.py help
 
 ---
 
-## Warp Log v1.0
+## Warp Log
 
 **Minimal** and efficient logging library for C++20 and above, featuring clean **ANSI-colored** console output and easy project integration.
 
@@ -89,7 +95,7 @@ warp::LogTag makeNameAddrTag(std::string_view name, std::string_view addr) {
 
 ---
 
-## Warp Timer v2.0
+## Warp Timer
 
 **Lightweight** and precise timing utility designed to measure **execution durations**, **profile performance**, and **benchmark** code sections in real time.
 
@@ -159,7 +165,7 @@ void demo::loadStuff() {
 
 ---
 
-## Warp Test v1.0
+## Warp Test
 
 **Lightweight** unit testing and validation framework designed for rapid development and clean console reporting.
 It emphasizes **simplicity**, **readability**, and structured output for quick test analysis.

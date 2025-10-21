@@ -14,6 +14,8 @@
 #include <string_view>
 #include <functional>
 #include <vector>
+#include <iostream>
+#include <format>
 
 namespace warp::test {
 
@@ -52,14 +54,34 @@ private:
   internal::Summary _test_summary;
 
   /// Logs test description and result to the console
-  static void _logTestCase(bool cond, std::string_view desc) noexcept;
+  static void _logTestCase(bool cond, std::string_view desc) noexcept {
+    std::cout << std::format(
+      ""
+      "\t\t\t\033[34m[CASE]\033[0m"
+      "{}"
+      " : {}\n",
+      (cond ? "\033[32m[PASS]\033[0m" : "\033[31m[FAIL]\033[0m"), desc
+    );
+  }
 
 public:
   Suite() = delete;
-  explicit Suite(std::string_view desc) noexcept;
-  ~Suite() noexcept;
 
-  void test(bool cond, std::string_view desc) noexcept;
+  explicit Suite(std::string_view desc) noexcept {
+    std::cout << std::format("\t\t\033[34m[SUITE]\033[0m : {}", desc) << " {\n";
+  }
+
+  ~Suite() noexcept {
+    std::cout << std::format(
+      "\t\t{} \033[33m[{}/{}]\033[0m\n", '}',
+      _test_summary.getPassedCases(), _test_summary.getTotalCases()
+    );
+  }
+
+  void test(bool cond, std::string_view desc) noexcept {
+    _test_summary.addCase(cond);
+    Suite::_logTestCase(cond, desc);
+  }
 
   [[nodiscard]] constexpr internal::Summary getSummary() const noexcept {
     return _test_summary;
@@ -72,14 +94,34 @@ private:
   internal::Summary _test_summary;
 
 public:
-  explicit Registry() noexcept;
-  ~Registry() noexcept;
+  explicit Registry() noexcept {
+    std::cout << std::format("\033[34m[REGISTRY]\033[0m") << " {\n";
+  }
+
+  ~Registry() noexcept {
+    std::cout << std::format(
+      "{} \033[33m[{}/{}]\033[0m\n", '}',
+      _test_summary.getPassedCases(), _test_summary.getTotalCases()
+    ) << std::endl;
+  }
 
   /// Evaluates a collection of test suites
   [[nodiscard]] Registry& addCollection(
     std::string_view name,
     std::vector<std::function<internal::Summary()>> suites
-  ) noexcept;
+  ) noexcept {
+    std::cout << std::format("\t\033[34m[COLLECTION]\033[0m : {}", name) << " {\n";
+    internal::Summary collection_summary {};
+    for (const auto& TEST : suites) collection_summary += TEST();
+
+    std::cout << std::format(
+      "\t{} \033[33m[{}/{}]\033[0m\n", '}',
+      collection_summary.getPassedCases(), collection_summary.getTotalCases()
+    );
+
+    _test_summary += collection_summary;
+    return *this;
+  }
 
   [[nodiscard]] constexpr int conclude() const noexcept {
     return (_test_summary.getFailedCases() == 0) ? 0 : 1;

@@ -9,6 +9,9 @@
 #include <functional>
 #include <string_view>
 #include <format>
+#include <iostream>
+#include <algorithm>
+#include <numeric>
 
 #ifndef WARP_TOOLKIT_API
   #ifdef _WIN32
@@ -26,44 +29,87 @@ namespace internal {
 
 inline constexpr int unitID(TimeUnit u) noexcept { return static_cast<int>(u); }
 
-/// Conversion Table: [us, ms, s]
 static inline constexpr double TABLE[3][3] {
   /*us*/ {1.0,       0.001,    0.000001},
   /*ms*/ {1000.0,    1.0,      0.001   },
   /* s*/ {1'000'000, 1000.0,   1.0     },
 };
 
-/// Compile-time conversion
 template <TimeUnit Source = TimeUnit::MilliSeconds, TimeUnit Target>
 inline constexpr double convertUnit(double value) noexcept {
   if constexpr (Source == Target) return value;
   return value * TABLE[unitID(Source)][unitID(Target)];
 }
 
-/// Runtime conversion
 inline double convertUnit(double value, TimeUnit source, TimeUnit target) noexcept {
   if (source == target) return value;
   return value * TABLE[unitID(source)][unitID(target)];
 }
 
-/// Character to represent time unit
 inline constexpr char timeUnitPrefix(TimeUnit u) noexcept {
   const char PREFIX_CHAR[3] { 'u', 'm', '\x00' };
   return PREFIX_CHAR[unitID(u)];
 }
 
-/// Formatted ANSI colored tag-like elapsed string
 inline std::string formatElapsed(double value, TimeUnit u) noexcept {
   return std::format("\033[32m[{:.3f} {}s]\033[0m", value, timeUnitPrefix(u));
 }
 
 } // namespace internal
 
-/// High-precision timing and benchmarking utility.
 class WARP_TOOLKIT_API Timer {
 private:
-  static void _logElapsed(std::string_view desc, double elapsed, TimeUnit unit) noexcept;
-  static void _logBenchmark(std::string_view desc, std::vector<double> results, TimeUnit unit) noexcept;
+  static void _logElapsed(std::string_view desc, double elapsed, TimeUnit unit) noexcept {
+    std::cout << std::format(
+      "\033[34m[TIMER]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n",
+      elapsed , internal::timeUnitPrefix(unit) , desc
+    );
+  }
+
+  static void _logBenchmark(std::string_view desc, std::vector<double> results, TimeUnit time_unit) noexcept {
+    if (results.empty()) [[unlikely]] {
+      std::cout
+        << "\033[34m[TIMER][BENCHMARK]\033[0m\033[33m[WARNING]\033[0m : "
+        << "Trying to benchmark empty results\n"
+      ;
+    }
+
+    const size_t SIZE {results.size()};
+    std::sort(results.begin(), results.end());
+
+    const double MEAN {std::accumulate(results.begin(), results.end(), 0.0) / SIZE};
+
+    const double MEDIAN {
+      [&results, &SIZE]{
+        size_t mid = SIZE / 2;
+        return (SIZE % 2 == 0) ? (results[mid - 1] + results[mid]) / 2.0 : results[mid];
+      } ()
+    };
+
+    const double MODE {
+      [&results, &SIZE] {
+        double mode = results[0];
+        size_t max_count = 1, count = 1;
+
+        for (size_t i = 1; i < SIZE; ++i) {
+          count = (results[i] == results[i - 1]) ? count + 1 : 1;
+          if (count > max_count) { max_count = count; mode = results[i]; }
+        }
+
+        return mode;
+      } ()
+    };
+
+    const char U = internal::timeUnitPrefix(time_unit);
+    std::cout << std::format(
+      ""
+      "\033[34m[TIMER][BENCHMARK]\033[0m : {}\n"
+      "  \033[32m[MEAN]\033[0m   : {:.3f} {}s\n"
+      "  \033[32m[MEDIAN]\033[0m : {:.3f} {}s\n"
+      "  \033[32m[MODE]\033[0m   : {:.3f} {}s\n",
+      desc, MEAN, U, MEDIAN, U, MODE, U
+    );
+  }
 
 protected:
   const std::string _DESC;
@@ -74,7 +120,6 @@ protected:
   [[nodiscard]] double _getTimeSinceStart() const noexcept;
   [[nodiscard]] double _stopAndGetElapsed() noexcept;
 
-  /// Returns elapsed time in ms
   [[nodiscard]] static double _measureCallableTimeMS(const std::function<void()>& callable) noexcept;
 
 public:
@@ -90,7 +135,6 @@ public:
   void stop() noexcept;
   void reset() noexcept { start(); }
 
-  /// Measures & logs a single callable execution
   template <TimeUnit Target = TimeUnit::MilliSeconds>
   static double measure(std::string_view desc, const std::function<void()>& callable) noexcept {
     const double ELAPSED = internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable));
@@ -98,7 +142,6 @@ public:
     return ELAPSED;
   }
 
-  /// Benchmarks callable multiple times and report summary.
   template <TimeUnit Target = TimeUnit::MilliSeconds>
   static void benchmark(std::string_view desc, const std::function<void()>& callable, uint32_t samples = 8) noexcept {
     std::vector<double> results;
@@ -112,7 +155,6 @@ public:
   }
 };
 
-/// Hierarchical timer used for nested or scoped measurements.
 class WARP_TOOLKIT_API HierarchyTimer final : public Timer {
 private:
   double _sub_task_measure {0.0};
@@ -126,20 +168,25 @@ public:
   explicit HierarchyTimer(std::string description, TimeUnit unit = TimeUnit::MilliSeconds) noexcept
   : Timer {std::move(description), unit} { _logTimerStart(); }
 
-  ~HierarchyTimer() noexcept;
+  ~HierarchyTimer() noexcept { if (_is_running) stop(); }
 
   void start() noexcept = delete;
   void reset() noexcept = delete;
-  void stop()  noexcept;
 
-  /// Calls and measures the provided callable
+  void stop()  noexcept {
+    const double ELAPSED = _stopAndGetElapsed();
+    std::cout << "\n} " << std::format("\033[32m[{:.3f} {}s]\033[0m\n", ELAPSED, internal::timeUnitPrefix(_UNIT));
+  }
+
+
   template <TimeUnit Target = TimeUnit::MilliSeconds>
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
     _subTaskImpl(desc, _measureCallableTimeMS(callable), Target);
   }
 
-  /// Calls and measures the provided callable (uses HierarchyTimer::_UNIT) as time unit
-  void subTask(std::string_view desc, const std::function<void()>& callable) noexcept;
+  void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
+    _subTaskImpl(desc, _measureCallableTimeMS(callable), _UNIT);
+  }
 
   template <TimeUnit>
   static double measure(std::string_view, const std::function<void()>&) = delete;
