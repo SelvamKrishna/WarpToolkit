@@ -65,82 +65,74 @@ class Command:
         self.is_run    : bool = "--r" in sys.argv
         self.is_clean  : bool = "--c" in sys.argv
         self.is_static : bool = "--static" in sys.argv
-        self.is_shared : bool = not self.is_static
-
-    def is_valid_run(self) -> bool: return self.is_run and self.cmd in {'t', 'f'}
 
 SHELL = TerminalLink()
 
-class Utils:
-    @staticmethod
-    def collect_src(lib: str) -> list[Path]:
-        if lib == BUILD_ALL_CMD:
-            return [cpp for f in Path(".").glob("warp_*") if f.is_dir() for cpp in f.glob("*.cpp")]
-        return list(Path(f"{lib}").glob("*.cpp"))
+def collect_src(lib: str) -> list[Path]:
+    if lib is not BUILD_ALL_CMD: return list(Path(f"{lib}").glob("*.cpp"))
+    return [
+        src
+        for f in Path(".").glob("warp_*") if f.is_dir()
+        for src in f.glob("*.cpp")
+    ]
 
-    @staticmethod
-    def compile_srcs(srcs: list[Path]) -> list[Path]:
-        objs = [src.with_suffix(".o") for src in srcs]
-        for src, obj in zip(srcs, objs):
-            SHELL.info(f"Compiling {src} → {obj}")
-            SHELL.run([*CXXFLAGS, "-c", str(src), "-o", str(obj)])
-        return objs
+def compile_srcs(srcs: list[Path]) -> list[Path]:
+    objs = [src.with_suffix(".o") for src in srcs]
+    for src, obj in zip(srcs, objs):
+        SHELL.info(f"Compiling {src} → {obj}")
+        SHELL.run([*CXXFLAGS, "-c", str(src), "-o", str(obj)])
+    return objs
 
-    @staticmethod
-    def clean():
-        for path in Path(".").rglob("*"):
-            if path.suffix in {".o", ".a", f".{SHARED_EXT}"}:
-                SHELL.info(f"Removing: {path}")
-                path.unlink(missing_ok=True)
-        SHELL.ok("Clean complete.")
+def clean():
+    for path in Path(".").rglob("*"):
+        if path.suffix in {".o", ".a", f".{SHARED_EXT}"}:
+            SHELL.info(f"Removing: {path}")
+            path.unlink(missing_ok=True)
+    SHELL.ok("Clean complete.")
 
-class Build:
-    @staticmethod
-    def build_lib(lib_name: str, is_static: bool, out_dir: Path = Path(".\\")) -> Path:
-        if not lib_name.startswith("warp_"): SHELL.error(f"{lib_name} is invalid", True)
+def build_lib(lib_name: str, is_static: bool, out_dir: Path = Path(".\\")) -> Path:
+    if not lib_name.startswith("warp_"): SHELL.error(f"{lib_name} is invalid", True)
 
-        objs: list[Path] = Utils.compile_srcs(Utils.collect_src(lib_name))
-        target: Path = out_dir / f"{lib_name}.{'a' if is_static else SHARED_EXT}"
-        SHELL.info(f"Building {"static" if is_static else "shared"} library: {target}")
+    objs: list[Path] = compile_srcs(collect_src(lib_name))
+    target: Path = out_dir / f"lib{lib_name}.{'a' if is_static else SHARED_EXT}"
+    SHELL.info(f"Building {"static" if is_static else "shared"} library: {target}")
 
-        SHELL.run(
-            ["ar", "rcs", str(target), *map(str, objs)] if is_static else
-            [*CXXFLAGS, *SHARED_FLAGS, *map(str, objs), "-o", str(target)]
-        )
+    SHELL.run(
+        ["ar", "rcs", str(target), *map(str, objs)] if is_static else
+        [*CXXFLAGS, *SHARED_FLAGS, *map(str, objs), "-o", str(target)]
+    )
 
-        SHELL.ok(f"Built {target}")
-        return target
+    SHELL.ok(f"Built {target}")
+    return target
 
-    @staticmethod
-    def build_test(lib_name: str):
-        lib_src = Path(lib_name) / f"{lib_name}.cpp"
-        if not lib_src.exists(): SHELL.error(f"Missing library source: {lib_src}", True)
-        else: SHELL.run([*CXXFLAGS, "-o", str(TEST_BIN), *map(str, TEST_SRC), str(lib_src)])
+def build_test(lib_name: str):
+    lib_src = Path(lib_name) / f"{lib_name}.cpp"
+    if not lib_src.exists(): SHELL.error(f"Missing library source: {lib_src}", True)
+    else: SHELL.run([*CXXFLAGS, "-o", str(TEST_BIN), *map(str, TEST_SRC), str(lib_src)])
 
-    @staticmethod
-    def build_final(lib_name: str, is_static: bool = False):
-        static_lib = Path("test") / f"lib{lib_name}.a"
-        shared_lib = Path("test") / f"lib{lib_name}.{SHARED_EXT}"
+def build_final(lib_name: str, is_static: bool = False):
+    static_lib = Path("test") / f"lib{lib_name}.a"
+    shared_lib = Path("test") / f"lib{lib_name}.{SHARED_EXT}"
 
-        if not static_lib.exists() and not shared_lib.exists():
-            if not Build.build_lib(lib_name, is_static, Path("test")).exists:
-                SHELL.error(f"Failed to locate or build library for '{lib_name}'", True)
+    if not static_lib.exists() and not shared_lib.exists():
+        if not build_lib(lib_name, is_static, Path("test")).exists:
+            SHELL.error(f"Failed to locate or build library for '{lib_name}'", True)
 
-        SHELL.info(f"Linking library: {static_lib if is_static else shared_lib}")
-        SHELL.run(
-            [*CXXFLAGS, "-o", str(TEST_BIN), *map(str, TEST_SRC), str(static_lib)] if is_static else
-            [*CXXFLAGS, "-Ltest", f"-l{lib_name}", "-o", str(TEST_BIN), *map(str, TEST_SRC)]
-        )
+    SHELL.info(f"Linking library: {static_lib if is_static else shared_lib}")
+    SHELL.run(
+        [*CXXFLAGS, "-o", str(TEST_BIN), *map(str, TEST_SRC), str(static_lib)] if is_static else
+        [*CXXFLAGS, "-Ltest", f"-l{lib_name}", "-o", str(TEST_BIN), *map(str, TEST_SRC)]
+    )
 
 if __name__ == "__main__":
     inp = Command()
-    if inp.is_clean: Utils.clean()
+    if inp.is_clean: clean()
 
     match inp.cmd:
         case 'h' | "help"  : SHELL.usage()
-        case 't' | "test"  : Build.build_test(inp.arg)
-        case 'f' | "final" : Build.build_final(inp.arg, inp.is_static)
-        case 'a' | "all"   : Build.build_lib(BUILD_ALL_CMD, inp.is_static)
-        case 'l' | "lib"   : Build.build_lib(inp.arg, inp.is_static)
+        case 't' | "test"  : build_test(inp.arg)
+        case 'f' | "final" : build_final(inp.arg, inp.is_static)
+        case 'a' | "all"   : build_lib(BUILD_ALL_CMD, inp.is_static)
+        case 'l' | "lib"   : build_lib(inp.arg, inp.is_static)
 
-    if inp.is_valid_run(): SHELL.run([".\\" + str(TEST_BIN)])
+    SHELL.run([".\\" + str(TEST_BIN)]) if inp.is_run else SHELL.usage()
