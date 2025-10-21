@@ -2,14 +2,6 @@
 #ifndef WARP_TEST
 #define WARP_TEST
 
-#ifndef WARP_TOOLKIT_API
-  #ifdef _WIN32
-    #define WARP_TOOLKIT_API __declspec(dllexport)
-  #else
-    #define WARP_TOOLKIT_API
-  #endif
-#endif
-
 #include <cstdint>
 #include <string_view>
 #include <functional>
@@ -21,7 +13,6 @@ namespace warp::test {
 
 namespace internal {
 
-/// Keeps track of all test cases
 class Summary final {
 private:
   uint64_t _total_case  {0};
@@ -48,12 +39,10 @@ public:
 
 } // namespace internal
 
-/// A evaluates a collection of test cases
-class WARP_TOOLKIT_API Suite final {
+class Suite final {
 private:
   internal::Summary _test_summary;
 
-  /// Logs test description and result to the console
   static void _logTestCase(bool cond, std::string_view desc) noexcept {
     std::cout << std::format(
       ""
@@ -88,8 +77,7 @@ public:
   }
 };
 
-/// Master class to handle all test cases
-class WARP_TOOLKIT_API Registry final {
+class Registry final {
 private:
   internal::Summary _test_summary;
 
