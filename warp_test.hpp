@@ -43,7 +43,7 @@ public:
 class Suite final {
 private:
   internal::Summary _test_summary;
-  warp::Sender _logger;
+  warp::Logger _logger;
 
   void _logTestCase(bool cond, std::string_view desc) noexcept {
     static warp::LogTag case_tag = tag_factory::makeColored(ANSIFore::Blue, "[BLUE]");
@@ -80,7 +80,7 @@ public:
 class Registry final {
 private:
   internal::Summary _test_summary;
-  warp::Sender _logger;
+  warp::Logger _logger;
 
 public:
   explicit Registry() noexcept
@@ -95,7 +95,7 @@ public:
     std::string_view name,
     std::vector<std::function<internal::Summary()>> suites
   ) noexcept {
-    warp::Sender collection_logger({"\t\033[34m[COLLECTION]\033[0m : " + std::string(name) + " {"});
+    warp::Logger collection_logger({"\t\033[34m[COLLECTION]\033[0m : " + std::string(name) + " {"});
     internal::Summary collection_summary {};
 
     for (const auto& TEST : suites) collection_summary += TEST();
