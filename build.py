@@ -5,16 +5,16 @@ from pathlib import Path
 import colorama
 
 HELP, FLAGS = [
-    ["l [warp_libname]", "build specific library"],
-    ["a",                "build combined library warp_toolkit"],
-    ["t [warp_libname]", "test with library source (DEV)"],
-    ["f [warp_libname]", "test linked against built library (DEV)"],
-    ["h",                "display this usage information"],
+    ("l [warp_libname]", "build specific library"),
+    ("a",                "build combined library warp_toolkit"),
+    ("t [warp_libname]", "test with library source (DEV)"),
+    ("f [warp_libname]", "test linked against built library (DEV)"),
+    ("h",                "display this usage information"),
 ], [
-    ["--r",      "Runs the output application (DEV)"],
-    ["--c",      "Cleans build artifacts"],
-    ["--static", "Builds static library"],
-    ["--shared", "Builds shared library"],
+    ("--r",      "Runs the output application (DEV)"),
+    ("--c",      "Cleans build artifacts"),
+    ("--static", "Builds static library"),
+    ("--shared", "Builds shared library"),
 ]
 
 CXXFLAGS: list[str] = ["g++", "-std=c++20", "-O3", "-Wall", "-Wextra", "-I."]
@@ -35,27 +35,30 @@ class TerminalLink:
     @staticmethod
     def _msg(color: str, tag: str, msg: str): print(f"{color}{tag}{colorama.Style.RESET_ALL} {msg}")
 
+    @staticmethod
+    def _help(head: str, style: str, command: list[tuple[str, str]]):
+        print(f"\n{colorama.Style.BRIGHT}{head}:{colorama.Style.RESET_ALL}")
+        [
+            print(
+                f"  {style}{cmd:<{max(len(cmd) for cmd, _ in HELP)}}{colorama.Style.RESET_ALL} → {desc}"
+            ) for cmd, desc in command
+        ]
+
     def info  (self, msg: str): self._msg(colorama.Fore.CYAN,   "[INFO]", msg)
     def ok    (self, msg: str): self._msg(colorama.Fore.GREEN,  "[OK]",   msg)
     def warn  (self, msg: str): self._msg(colorama.Fore.YELLOW, "[WARN]", msg)
     def error (self, msg: str, throw_err: bool = False):
-        self._msg(colorama.Fore.RED,    "[ERR]",  msg)
+        self._msg(colorama.Fore.RED, "[ERR]", msg)
         if throw_err: raise ValueError(msg)
 
-    def run(self, cmd: list[str]):
+    def run(self, cmd: list[str], check = True):
         print(f"{colorama.Fore.BLUE}$ {' '.join(cmd)}{colorama.Style.RESET_ALL}")
-        try: subprocess.run(cmd, check=True)
+        try: subprocess.run(cmd, check=check)
         except subprocess.CalledProcessError as e: self.error(f"Command failed :{e.returncode}", True)
 
-    def usage(self, err_code: int = 0):
-        print(f"{colorama.Style.BRIGHT}USAGE:{colorama.Style.RESET_ALL}")
-        for cmd, desc in HELP:
-            print(f"  python build.py {colorama.Style.BRIGHT}{cmd}{colorama.Style.RESET_ALL} → {desc}")
-
-        print(f"{colorama.Style.BRIGHT}\nFLAGS:{colorama.Style.RESET_ALL}")
-        for flag, desc in FLAGS:
-            print(f"  {colorama.Style.DIM}{flag}{colorama.Style.RESET_ALL} → {desc}")
-
+    def help_msg(self, err_code: int = 0):
+        self._help("COMMANDS", colorama.Style.BRIGHT, HELP)
+        self._help("FLAGS"   , colorama.Style.BRIGHT, FLAGS)
         sys.exit(err_code)
 
 class Command:
@@ -65,6 +68,9 @@ class Command:
         self.is_run    : bool = "--r" in sys.argv
         self.is_clean  : bool = "--c" in sys.argv
         self.is_static : bool = "--static" in sys.argv
+
+    def is_empty(self):
+        return self.cmd == "" and self.arg == "" and not self.is_clean and not self.is_run
 
 SHELL = TerminalLink()
 
@@ -129,10 +135,11 @@ if __name__ == "__main__":
     if inp.is_clean: clean()
 
     match inp.cmd:
-        case 'h' | "help"  : SHELL.usage()
+        case 'h' | "help"  : SHELL.help_msg()
         case 't' | "test"  : build_test(inp.arg)
         case 'f' | "final" : build_final(inp.arg, inp.is_static)
         case 'a' | "all"   : build_lib(BUILD_ALL_CMD, inp.is_static)
         case 'l' | "lib"   : build_lib(inp.arg, inp.is_static)
 
-    SHELL.run([".\\" + str(TEST_BIN)]) if inp.is_run else SHELL.usage()
+    if inp.is_run: SHELL.run([".\\" + str(TEST_BIN)], False)
+    elif inp.is_empty(): SHELL.help_msg()

@@ -59,8 +59,7 @@ public:
   explicit Suite(std::string_view desc) noexcept;
   ~Suite() noexcept;
 
-  void checkEq(bool cond, std::string_view desc) noexcept;
-  void checkNeq(bool cond, std::string_view desc) noexcept;
+  void test(bool cond, std::string_view desc) noexcept;
 
   [[nodiscard]] constexpr internal::Summary getSummary() const noexcept {
     return _test_summary;
@@ -91,11 +90,11 @@ public:
   warp::test::internal::Summary FN()
 
 #define TEST_EQ(SUITE, ACTUAL, EXPECTED) do { \
-  SUITE.checkEq((ACTUAL) == (EXPECTED), "(" #ACTUAL " == " #EXPECTED ")"); \
+  SUITE.test((ACTUAL) == (EXPECTED), #ACTUAL " == " #EXPECTED); \
 } while(0)
 
 #define TEST_NEQ(SUITE, ACTUAL, EXPECTED) do { \
-  SUITE.checkNeq((ACTUAL) == (EXPECTED), "!(" #ACTUAL " == " #EXPECTED ")"); \
+  SUITE.test((ACTUAL) != (EXPECTED), #ACTUAL " != " #EXPECTED); \
 } while(0)
 
 } // namespace warp::test

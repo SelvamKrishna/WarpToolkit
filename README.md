@@ -175,14 +175,14 @@ It emphasizes **simplicity**, **readability**, and structured output for quick t
 
 ```cpp
 using namespace warp; // For brevity
-TEST_SUITE(someTest1) { // Expands to `warp::test::internal::Summary someTest1()`
+TEST_SUITE(someTest1) { // `warp::test::internal::Summary someTest1()`
     test::Suite t {"Example Test 1"}; // Creating a Suite
 
-    t.checkEq(1 - 1 == 0, "Simple Subtraction"); // Logs test case result with description
-    TEST_EQ(t, 1 + 1 == 2); // Expands to `t.checkEq(1 + 1 == 2, "1 + 1 == 2")`
-    t.checkEq(1 * 1 == 1, "Simple Multiplication");
-    t.checkNeq(2 > 1, "Greater than");
-    TEST_NEQ(t, 1 > 2);
+    t.test(1 - 1 == 0, "Simple Subtraction"); // Logs test case result with description
+    TEST_EQ(t, 1 + 1, 2); // `t.test((1 + 1) == (2), "1 + 1 == 2")`
+    t.test(1 * 1 == 1, "Simple Multiplication");
+    t.test(2 > 1, "Greater than");
+    TEST_NEQ(t, 2 * 2, 5); // `t.test((2 * 2) != (5), "2 * 2 != 5")`
 
     return t.getSummary(); // Used by test::Registry
 } // Suite is destroyed which automatically logs the summary

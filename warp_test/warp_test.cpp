@@ -27,14 +27,9 @@ Suite::~Suite() noexcept {
   );
 }
 
-void Suite::checkEq(bool cond, std::string_view desc) noexcept {
+void Suite::test(bool cond, std::string_view desc) noexcept {
   _test_summary.addCase(cond);
   Suite::_logTestCase(cond, desc);
-}
-
-void Suite::checkNeq(bool cond, std::string_view desc) noexcept {
-  _test_summary.addCase(!cond);
-  Suite::_logTestCase(!cond, desc);
 }
 
 Registry::Registry() noexcept {
