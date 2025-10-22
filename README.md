@@ -9,9 +9,9 @@ It provides modern C++ utilities like high-resolution timers, hierarchical task 
 
 - ### [**warp_log**](warp-log)
 
-- ### [**warp_timer**](warp-timer)
-
 - ### [**warp_test**](warp-test)
+
+- ### [**warp_timer**](warp-timer)
 
 ---
 
@@ -47,7 +47,7 @@ int main() {
 ### Example: Timestamped Logging
 
 ```cpp
-#include "warp_log/timer_logger.hpp"
+#include "warp_log/timed_logger.hpp"
 
 using namespace warp::log;
 
@@ -88,9 +88,73 @@ audio_log.info("Audio device initialized");
 
 |Component|Description|
 |---------|-----------|
-|warp::log::Logger|Base class for logging with context and colorized tags.|
-|warp::log::TimedLogger|Extends `Logger` to add timestamped messages.|
-|warp::log::Tag|Type alias for std::string, representing a contextual identifier.|
+|`warp::log::Logger`|Base class for logging with context and colorized tags.|
+|`warp::log::TimedLogger`|Extends `Logger` to add timestamped messages.|
+|`warp::log::Tag`|Type alias for std::string, representing a contextual identifier.|
+
+---
+
+## Warp Test
+
+*Lightweight*, header-only *unit testing framework* for C++20, designed for *readable*, *colorized*, and *structured* console output.
+It integrates seamlessly with [Warp Log](warp-log) to give hierarchical test results with ANSI colors.
+
+|Feature|Description|
+|-------|-----------|
+|Colorized Output|Clearly distinguishes suites, test cases, and pass/fail status.|
+|Automatic Summaries|Each suite and collection automatically reports passed/total case counts for clear progress tracking.|
+|Hierarchical Organization|Supports Test Cases -> Suites → Collections → Registry for structured tests.|
+
+### Example: Creating a Test Suite
+
+```cpp
+#include "warp_test/suite.hpp"
+using namespace warp::test;
+
+TEST_SUITE(MathTests) {
+    Suite suite("Basic Math");
+
+    suite.test(1 + 1 == 2, "Addition works");
+    suite.test(2 * 2 == 4, "Multiplication works");
+
+    TEST_EQ(suite, 5 - 3, 2);  // Macro helper
+    TEST_NEQ(suite, 2 + 2, 5);
+
+    return suite.getSummary();
+}
+```
+
+### Example: Organizing Multiple Suites
+
+```cpp
+#include "warp_test/registry.hpp"
+using namespace warp::test;
+
+int main() {
+    Registry registry;
+
+    registry.addCollection("Arithmetic", { &MathTests, &AlgebraTests });
+    registry.addCollection("Physics", { &KinematicsTests, &DynamicsTests });
+
+    return registry.conclude(); // 0 if all tests passed, 1 otherwise
+}
+```
+
+### Macros Overview
+
+|Macro|Description|
+|-----|-----------|
+|`TEST_SUITE(FN)`|Defines a function returning a Summary for a suite.|
+|`TEST_EQ(SUITE, ACTUAL, EXPECTED)`|Checks that ACTUAL == EXPECTED.|
+|`TEST_NEQ(SUITE, ACTUAL, EXPECTED)`|Checks that ACTUAL != EXPECTED.|
+
+### Internal Overview
+
+|Component|Description|
+|---------|-----------|
+|`warp::test::Suite`|Represents a single suite of tests; logs results and summary.|
+|`warp::test::internal::Summary`|Tracks passed, failed, and total test counts|
+|`warp::test::Registry`|Manages multiple collections of suites and prints the overall summary.|
 
 ---
 
@@ -160,62 +224,6 @@ void demo::loadStuff() {
     });
 
 } // Main Task ends, logs hierarchical timing information
-```
-
----
-
-## Warp Test
-
-**Lightweight** unit testing and validation framework designed for rapid development and clean console reporting.
-It emphasizes **simplicity**, **readability**, and structured output for quick test analysis.
-
-| Feature | Description |
-| ------- | ----------- |
-| ANSI Colored Output | Clearly distinguishes test statuses using colored terminal output. |
-| Suite-Based Organization | Groups related test cases into Suites for modular and structured testing. |
-| Collections and Registry | Allows grouping multiple suites into Collections and managing them through a central Registry. |
-| Automatic Summaries | Each suite and collection automatically reports passed/failed case counts for clear progress tracking. |
-
-### Creating a test function
-
-```cpp
-using namespace warp; // For brevity
-TEST_SUITE(someTest1) { // `warp::test::internal::Summary someTest1()`
-    test::Suite t {"Example Test 1"}; // Creating a Suite
-
-    t.test(1 - 1 == 0, "Simple Subtraction"); // Logs test case result with description
-    TEST_EQ(t, 1 + 1, 2); // `t.test((1 + 1) == (2), "1 + 1 == 2")`
-    t.test(1 * 1 == 1, "Simple Multiplication");
-    t.test(2 > 1, "Greater than");
-    TEST_NEQ(t, 2 * 2, 5); // `t.test((2 * 2) != (5), "2 * 2 != 5")`
-
-    return t.getSummary(); // Used by test::Registry
-} // Suite is destroyed which automatically logs the summary
-```
-
-### `warp::test::Registry` Showcase
-
-```cpp
-int main() {
-    return warp::test::Registry { // Create Registry
-        /*
-            Test Hierarchy from top tp bottom:
-            Registry -> Collection -> Suite -> Test Cases.
-        */
-    }.addCollection( // Add Collection
-        "Test Collection A", // Collection name
-        { // List of pointers to test function
-            &someTest1,
-            &someTest2,
-        }
-    ).addCollection(
-        "Test Collection B",
-        {
-            &someTest3,
-            &someTest4,
-        }
-    ).conclude(); // 0 if all test's passed else 1
-}
 ```
 
 ---
