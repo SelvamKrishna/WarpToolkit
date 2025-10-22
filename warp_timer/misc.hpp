@@ -15,9 +15,9 @@ namespace internal {
 inline constexpr int unitID(TimeUnit u) noexcept { return static_cast<int>(u); }
 
 static inline constexpr double TABLE[3][3] {
-  /*us*/ {1.0,       0.001,    0.000001},
-  /*ms*/ {1000.0,    1.0,      0.001   },
-  /* s*/ {1'000'000, 1000.0,   1.0     },
+  {1.0,       0.001,    0.000001},
+  {1000.0,    1.0,      0.001   },
+  {1'000'000, 1000.0,   1.0     },
 };
 
 template <TimeUnit Source = TimeUnit::MilliSeconds, TimeUnit Target>

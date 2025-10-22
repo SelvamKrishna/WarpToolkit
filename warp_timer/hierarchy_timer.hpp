@@ -2,6 +2,10 @@
 
 #include "warp_log/misc.hpp"
 
+#include <string>
+#include <iostream>
+#include <functional>
+
 namespace warp {
 
 class HierarchyTimer final : public Timer {

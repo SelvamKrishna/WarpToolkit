@@ -2,6 +2,8 @@
 
 #include "misc.hpp"
 
+#include "warp_log/tag.hpp"
+
 #include <cstdint>
 #include <chrono>
 #include <vector>
@@ -18,37 +20,36 @@ namespace warp {
 class Timer {
 private:
   static void _logElapsed(std::string_view desc, double elapsed, TimeUnit unit) noexcept {
-    std::cout << std::format(
-      "\033[34m[TIMER]\033[0m\033[32m[{:.3f} {}s]\033[0m : {}\n",
-      elapsed, internal::timeUnitPrefix(unit), desc
-    );
+    std::cout
+      << log::setColor(log::ANSIFore::Blue)
+      << "[TIMER]"
+      << log::resetColor()
+      << internal::formatElapsed(elapsed, unit)
+      << " : " << desc << "\n";
   }
 
-  static void _logBenchmark(std::string_view desc, std::vector<double> results, TimeUnit time_unit) noexcept {
+  static inline void _logBenchmark(std::string_view desc, std::vector<double> results, TimeUnit time_unit) noexcept {
     if (results.empty()) [[unlikely]] {
-      std::cout
-        << "\033[34m[TIMER][BENCHMARK]\033[0m\033[33m[WARNING]\033[0m : "
-        << "Trying to benchmark empty results\n"
-      ;
+      log::internal::writeToConsole(
+        log::Level::Warn,
+        warp::log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][BENCHMARK]"),
+        "Trying to benchmark empty results"
+      );
+      return;
     }
 
-    const size_t SIZE {results.size()};
+    const size_t SIZE = results.size();
     std::sort(results.begin(), results.end());
 
-    const double MEAN {std::accumulate(results.begin(), results.end(), 0.0) / SIZE};
-
-    const double MEDIAN {
-      [&results, &SIZE]{
-        size_t mid = SIZE / 2;
-        return (SIZE % 2 == 0) ? (results[mid - 1] + results[mid]) / 2.0 : results[mid];
-      } ()
-    };
+    const double MEAN = std::accumulate(results.begin(), results.end(), 0.0) / SIZE;
+    const double MEDIAN = (SIZE % 2 == 0)
+      ? (results[SIZE / 2 - 1] + results[SIZE / 2]) / 2.0
+      : results[SIZE / 2];
 
     const double MODE {
-      [&results, &SIZE] {
-        double mode = results[0];
+      [&] {
         size_t max_count = 1, count = 1;
-
+        double mode;
         for (size_t i = 1; i < SIZE; ++i) {
           count = (results[i] == results[i - 1]) ? count + 1 : 1;
           if (count > max_count) { max_count = count; mode = results[i]; }
@@ -59,14 +60,17 @@ private:
     };
 
     const char U = internal::timeUnitPrefix(time_unit);
-    std::cout << std::format(
-      ""
-      "\033[34m[TIMER][BENCHMARK]\033[0m : {}\n"
-      "  \033[32m[MEAN]\033[0m   : {:.3f} {}s\n"
-      "  \033[32m[MEDIAN]\033[0m : {:.3f} {}s\n"
-      "  \033[32m[MODE]\033[0m   : {:.3f} {}s\n",
-      desc, MEAN, U, MEDIAN, U, MODE, U
+
+    const std::string prefix = makeColoredTag(log::ANSIFore::Blue, "[TIMER][BENCHMARK]");
+    const std::string msg = std::format(
+      "{}\n  {}[MEAN]   {}: {:.3f} {}s\n  {}[MEDIAN] {}: {:.3f} {}s\n  {}[MODE]   {}: {:.3f} {}s",
+      desc,
+      setColor(log::ANSIFore::Green), log::resetColor(), MEAN, U,
+      setColor(log::ANSIFore::Green), log::resetColor(), MEDIAN, U,
+      setColor(log::ANSIFore::Green), log::resetColor(), MODE, U
     );
+
+    log::internal::writeToConsole(log::Level::Info, prefix, msg);
   }
 
 protected:
@@ -84,7 +88,7 @@ protected:
   [[nodiscard]] double _stopAndGetElapsed() noexcept {
     const double ELAPSED = _getTimeSinceStart();
     _is_running = false;
-    _start = std::chrono::high_resolution_clock::now(); // reset start
+    _start = std::chrono::high_resolution_clock::now();
     return ELAPSED;
   }
 
@@ -128,9 +132,8 @@ public:
     std::vector<double> results;
     results.reserve(samples);
 
-    while (samples--) results.push_back(
-      internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable))
-    );
+    while (samples--)
+      results.push_back(internal::convertUnit<TimeUnit::MilliSeconds, Target>(_measureCallableTimeMS(callable)));
 
     _logBenchmark(desc, std::move(results), Target);
   }
