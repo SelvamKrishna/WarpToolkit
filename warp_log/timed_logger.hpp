@@ -21,7 +21,7 @@ private:
 
     if (now - _last_timestamp_update > TIMESTAMP_CACHE_DURATION) {
       char buf[sizeof("[HH:MM:SS]")] {};
-      std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+      std::time_t t = std::chrono::system_clock::to_time_t(now);
       std::tm tm_struct{};
       #ifdef _WIN32
         localtime_s(&tm_struct, &t);
@@ -30,6 +30,7 @@ private:
       #endif
       std::strftime(buf, sizeof(buf), "[%H:%M:%S]", &tm_struct);
       _cached_time_stamp = makeColoredTag(_timestamp_color, buf);
+      _last_timestamp_update = now;
     }
 
     return _cached_time_stamp;
@@ -69,7 +70,7 @@ public:
   LOG_FN_IMPL(info, Level::Info)
   LOG_FN_IMPL(warn, Level::Warn)
   LOG_FN_IMPL(err , Level::Error)
-  #ifdef NDEBG
+  #ifdef NDEBUG
     template <typename... Args>
     void dbg(std::format_string<Args...> msg, Args&&... args) const {}
   #else

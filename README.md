@@ -7,91 +7,90 @@ It provides modern C++ utilities like high-resolution timers, hierarchical task 
 
 ## Features
 
-### [**warp_log**](warp-log) : Logging Utilities
+- ### [**warp_log**](warp-log)
 
-- Flexible, ANSI-colored logging via simple API.
-- Easy integration with existing code.
+- ### [**warp_timer**](warp-timer)
 
-### [**warp_timer**](warp-timer) : Timing Utilities
-
-- High-resolution timers (`timer`) with auto-start and automatic logging.
-- Hierarchical timers (`hierarchy_timer`) for nested subtasks.
-- Function benchmarking with configurable iterations.
-
-### [**warp_test**](warp-test) : Testing Utilities
-
-- Lightweight and flexible unit testing framework.
-- Supports defining and running test cases with automatic result reporting.
-- Provides hierarchical test organization for complex test suites.
-
----
-
-## Installation
-
-Clone the repository:
-
-```shell
-git clone https://github.com/SelvamKrishna/WarpToolkit.git
-cd WarpToolkit
-```
-
-Get further build instructions:
-
-```shell
-python build.py help
-```
+- ### [**warp_test**](warp-test)
 
 ---
 
 ## Warp Log
 
-**Minimal** and efficient logging library for C++20 and above, featuring clean **ANSI-colored** console output and easy project integration.
+*lightweight*, *modern*, and *flexible* logging library for C++20 and above.
+It provides *ANSI-colored* console logging, *context tagging*, and optional *timestamped* logging for real-time diagnostics and clean runtime output.
 
-| Feature | Description |
-| ------- | ----------- |
-| ANSI Colors | Supports colored output for better log readability. |
-| Easy Integration | Simple API for integrating into existing projects. |
-| Timestamp Logging | Optionally includes timestamps in messages for better runtime diagnostics. |
-| Custom Log Levels | Supports user-defined log levels and formatted message styles. |
+|Feature|Description|
+|-------|-----------|
+|Multiple Log Levels|Supports Message, Info, Warn, Error, and Debug (auto-disabled in release builds).|
+|Colored Output|Per-level and per-tag ANSI color customization for clear visibility.|
+|Tagging System|Use one or more tags (`warp::log::Tag`) to organize and contextualize messages.|
+|Timestamp Logging|`TimedLogger` automatically prepends timestamps to all log messages.|
 
-### Warp Log Showcase
-
-```cpp
-using namespace warp; // For brevity
-
-Sender messenger1 {tag_factory::makeDefault("[HELLO]")}; // Default tag
-messenger1.allowTimestampLogging(true);
-messenger1.setTimestampColor(ANSIFore::Yellow);
-
-messenger1.info("Hello World"); // [HH:MM:SS][HELLO][INFO] : Hello World
-
-// Multiple tags
-Sender messenger2 {
-    {
-        tag_factory::makeColored(ANSIFore::Blue, "[ENGINE]"),
-        tag_factory::makeColored(ANSIFore::Cyan, "[SYSTEM]"),
-    },
-    true // Enable timestamp logging at construction
-};
-
-// Sample log messages
-messenger2.info("System Version: {}", getSystemVersion());
-messenger2.dbg("System Capacity: {}", getSystemCapacity());
-
-std::string resource_path = "assets/texture.png"; // Example resource path
-messenger2.warn("Unable to locate resource: {}", resource_path);
-
-messenger2.err("Failed to load plugin. Terminating...");
-```
-
-### Making Custom `warp::LogTag`
+### Example: Basic Logging
 
 ```cpp
-// Creates a custom log tag combining a name and address in the format [name@address].
-warp::LogTag makeNameAddrTag(std::string_view name, std::string_view addr) {
-    return std::format("[{}@{}]", name, addr); // A log tag is just a std::string
+#include "warp_log/tag.hpp"
+#include "warp_log/logger.hpp"
+
+using namespace warp::log;
+
+int main() {
+    Logger app_log { makeColoredTag(ANSIFore::Green, "[APP]") };
+
+    app_log.info("Application started");
+    app_log.warn("Low memory detected: {} MB left", 128);
+    app_log.err("Critical error: {}", "Failed to load resource");
 }
 ```
+
+### Example: Timestamped Logging
+
+```cpp
+#include "warp_log/timer_logger.hpp"
+
+using namespace warp::log;
+
+int main() {
+    TimedLogger timed_log {
+        makeColoredTag(ANSIFore::Yellow, "[CORE]"),
+        ANSIFore::BrightBlue // Timestamp color
+    };
+
+    timed_log.info("Initialized successfully");
+    timed_log.dbg("Loading assets...");
+    timed_log.err("Failed to initialize graphics backend");
+}
+```
+
+### Example: Creating Tags
+
+Tags are simple `std::string`identifiers used to categorize logs.
+
+```cpp
+Tag default_tag = makeDefaultTag("[GAME]");
+Tag colored_tag = makeColoredTag(ANSIFore::Cyan, "[RENDER]");
+```
+
+You can also combine multiple tags for complex log contexts:
+
+```cpp
+std::vector<Tag> tags {
+    makeColoredTag(ANSIFore::Red, "[ENGINE]"),
+    makeColoredTag(ANSIFore::Blue, "[AUDIO]"),
+};
+
+Logger audio_log { tags };
+audio_log.info("Audio device initialized");
+```
+
+### Internal Overview
+
+|Component|Description|
+|---------|-----------|
+|warp::log::Logger|Base class for logging with context and colorized tags.|
+|warp::log::TimedLogger|Extends `Logger` to add timestamped messages.|
+|warp::log::Tag|Type alias for std::string, representing a contextual identifier.|
 
 ---
 
