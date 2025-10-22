@@ -1,6 +1,4 @@
 #pragma once
-#ifndef WARP_TIMER
-#define WARP_TIMER
 
 #include <cstdint>
 #include <chrono>
@@ -37,6 +35,7 @@ static inline constexpr double TABLE[3][3] {
 
 template <TimeUnit Source = TimeUnit::MilliSeconds, TimeUnit Target>
 inline constexpr double convertUnit(double value) noexcept {
+
   if constexpr (Source == Target) return value;
   return value * TABLE[unitID(Source)][unitID(Target)];
 }
@@ -234,5 +233,3 @@ public:
 };
 
 } // namespace warp
-
-#endif // WARP_TIMER

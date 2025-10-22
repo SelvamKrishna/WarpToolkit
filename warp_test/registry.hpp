@@ -1,9 +1,11 @@
 #pragma once
 
-#include "summary.hpp"
+#include "misc.hpp"
 
-#include "warp_log/logger.hpp"
+#include "warp_log/misc.hpp"
+#include "warp_log/tag.hpp"
 
+#include <iostream>
 #include <string_view>
 #include <vector>
 #include <functional>
@@ -13,14 +15,16 @@ namespace warp::test {
 class Registry final {
 private:
   internal::Summary _test_summary;
-  log::Logger _logger;
 
 public:
-  explicit Registry() noexcept
-  : _logger{"\033[34m[REGISTRY]\033[0m {"} {}
+  explicit Registry() noexcept {
+    std::cout << log::makeColoredTag(log::ANSIFore::Blue, "[REGISTRY]\n");
+  }
 
   ~Registry() noexcept {
-    _logger.info("}} \033[33m[{}/{}]\033[0m", _test_summary.getPassedCases(), _test_summary.getTotalCases());
+    std::cout
+      << log::makeColoredTag(log::ANSIFore::Blue, "[REGISTRY]") << " : "
+      << _test_summary.getSummaryString() << std::endl;
   }
 
   /// Evaluates a collection of test suites
@@ -28,17 +32,13 @@ public:
     std::string_view name,
     std::vector<std::function<internal::Summary()>> suites
   ) noexcept {
-    log::Logger collection_logger({"\t\033[34m[COLLECTION]\033[0m : " + std::string(name) + " {"});
-    internal::Summary collection_summary {};
+    static const log::Tag COLLECTION_TAG {log::makeColoredTag(log::ANSIFore::Blue, "\t[COLLECTION]")};
+    std::cout << COLLECTION_TAG << " : " << name << '\n';
 
+    internal::Summary collection_summary {};
     for (const auto& TEST : suites) collection_summary += TEST();
 
-    collection_logger.info(
-      "\t}} \033[33m[{}/{}]\033[0m",
-      collection_summary.getPassedCases(),
-      collection_summary.getTotalCases()
-    );
-
+    std::cout << COLLECTION_TAG << " : " << collection_summary.getSummaryString() << "\n";
     _test_summary += collection_summary;
     return *this;
   }

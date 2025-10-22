@@ -8,7 +8,6 @@ class TimedLogger final : public Logger {
 private:
   ANSIFore _timestamp_color;
 
-  /// For peformance boost
   mutable std::string _cached_time_stamp {"\033[FGm[HH:MM:SS]\033[0m"};
   mutable std::chrono::system_clock::time_point _last_timestamp_update;
   static constexpr std::chrono::seconds TIMESTAMP_CACHE_DURATION {1};
@@ -58,7 +57,6 @@ public:
   , _timestamp_color       {timestamp_color}
   , _last_timestamp_update {std::chrono::system_clock::time_point::min()} {}
 
-  /// Macro for creating log functions
   #define LOG_FN_IMPL(FN, LVL)  \
     template <typename... Args> \
     void FN(std::format_string<Args...> msg, Args&&... args) const { _log(LVL, msg, std::forward<Args>(args)...); }

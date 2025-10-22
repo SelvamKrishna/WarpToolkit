@@ -1,10 +1,9 @@
 #pragma once
 
-#include "summary.hpp"
+#include "misc.hpp"
 
 #include "warp_log/logger.hpp"
 
-#include <format>
 #include <string_view>
 
 namespace warp::test {
@@ -29,15 +28,7 @@ public:
     log::makeColoredTag(log::ANSIFore::Blue, "\t\t[SUITE]")
   } { _logger.msg(desc); }
 
-  ~Suite() noexcept {
-    _logger.msg(
-      "{}[{}/{}]{}",
-      log::setColor(log::ANSIFore::Yellow),
-      _test_summary.getPassedCases(),
-      _test_summary.getTotalCases(),
-      log::resetColor()
-    );
-  }
+  ~Suite() noexcept {_logger.msg(_test_summary.getSummaryString()); }
 
   void test(bool cond, std::string_view desc) noexcept {
     _test_summary.addCase(cond);

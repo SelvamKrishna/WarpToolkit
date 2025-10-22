@@ -1,6 +1,9 @@
 #pragma once
 
+#include "warp_log/misc.hpp"
+
 #include <cstdint>
+#include <format>
 
 namespace warp::test::internal {
 
@@ -25,6 +28,10 @@ public:
     self._total_case  += other._total_case;
     self._passed_case += other._passed_case;
     return self;
+  }
+
+  std::string getSummaryString() const noexcept {
+    return std::format("{}[{}/{}]{}", log::setColor(log::ANSIFore::Yellow), _passed_case, _total_case, log::resetColor());
   }
 };
 

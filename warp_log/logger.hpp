@@ -34,7 +34,6 @@ public:
   explicit Logger(const std::vector<Tag>& tags) noexcept
   : _context {internal::cacheTagVec(tags)} {}
 
-  /// Macro for creating log functions
   #define LOG_FN_IMPL(FN, LVL)  \
     template <typename... Args> \
     void FN(std::format_string<Args...> msg, Args&&... args) const { _log(LVL, msg, std::forward<Args>(args)...); } \

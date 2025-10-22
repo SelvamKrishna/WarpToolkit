@@ -9,10 +9,8 @@
 
 namespace warp::log {
 
-/// Logging levels
 enum class Level : uint8_t { Message, Info, Debug, Warn, Error };
 
-/// ANSI foreground colors for terminal output
 enum class ANSIFore : uint8_t {
   Black = 30, Red, Green, Yellow, Blue, Magenta, Cyan, White,
   Reset = 39,
