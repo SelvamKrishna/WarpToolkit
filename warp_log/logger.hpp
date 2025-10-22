@@ -3,11 +3,11 @@
 #include "warp_log/misc.hpp"
 #include "warp_log/tag.hpp"
 
-#include <format>
-#include <iterator>
-#include <utility>
-#include <vector>
 #include <string>
+#include <format>
+#include <vector>
+#include <utility>
+#include <iterator>
 
 namespace warp::log {
 
@@ -55,4 +55,4 @@ public:
 
 };
 
-} // namespace warp
+} // namespace warp::log

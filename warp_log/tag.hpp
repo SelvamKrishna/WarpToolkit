@@ -2,6 +2,10 @@
 
 #include "misc.hpp"
 
+#include <string>
+#include <format>
+#include <string_view>
+
 namespace warp::log {
 
 using Tag = std::string;

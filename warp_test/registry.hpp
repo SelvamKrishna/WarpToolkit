@@ -27,7 +27,6 @@ public:
       << _test_summary.getSummaryString() << std::endl;
   }
 
-  /// Evaluates a collection of test suites
   [[nodiscard]] Registry& addCollection(
     std::string_view name,
     std::vector<std::function<internal::Summary()>> suites
@@ -46,4 +45,4 @@ public:
   [[nodiscard]] constexpr int conclude() const noexcept { return (_test_summary.getFailedCases() == 0) ? 0 : 1; }
 };
 
-}
+} // namespace warp::test

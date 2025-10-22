@@ -4,11 +4,11 @@
 
 #include "warp_log/logger.hpp"
 
+#include <iostream>
 #include <string_view>
 
 namespace warp::test {
 
-/// Evaluates and logs multiple test cases using warp_log
 class Suite final {
 private:
   internal::Summary _test_summary;

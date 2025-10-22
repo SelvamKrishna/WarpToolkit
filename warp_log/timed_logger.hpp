@@ -2,6 +2,10 @@
 
 #include "logger.hpp"
 
+#include <string>
+#include <format>
+#include <chrono>
+
 namespace warp::log {
 
 class TimedLogger final : public Logger {
