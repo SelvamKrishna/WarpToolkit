@@ -4,12 +4,11 @@
 
 namespace warp::log {
 
-/// Provides contextual logging support with tags and timestamps
 class TimedLogger final : public Logger {
 private:
   ANSIFore _timestamp_color;
 
-  /// Performance improvement
+  /// For peformance boost
   mutable std::string _cached_time_stamp {"\033[FGm[HH:MM:SS]\033[0m"};
   mutable std::chrono::system_clock::time_point _last_timestamp_update;
   static constexpr std::chrono::seconds TIMESTAMP_CACHE_DURATION {1};

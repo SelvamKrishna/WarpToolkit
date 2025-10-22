@@ -27,6 +27,8 @@ protected:
   }
 
 public:
+  explicit Logger() noexcept = default;
+
   explicit Logger(Tag tag) noexcept : _context {std::move(tag)} {}
 
   explicit Logger(const std::vector<Tag>& tags) noexcept
@@ -35,7 +37,8 @@ public:
   /// Macro for creating log functions
   #define LOG_FN_IMPL(FN, LVL)  \
     template <typename... Args> \
-    void FN(std::format_string<Args...> msg, Args&&... args) const { _log(LVL, msg, std::forward<Args>(args)...); }
+    void FN(std::format_string<Args...> msg, Args&&... args) const { _log(LVL, msg, std::forward<Args>(args)...); } \
+    void FN(std::string_view msg) const { internal::writeToConsole(LVL, _context, msg); }
 
   LOG_FN_IMPL(msg, Level::Message)
   LOG_FN_IMPL(info, Level::Info)
@@ -43,7 +46,8 @@ public:
   LOG_FN_IMPL(err , Level::Error)
   #ifdef NDEBUG
     template <typename... Args>
-    void dbg(std::format_string<Args...> msg, Args&&... args) const {}
+    void dbg(std::format_string<Args...>, Args&&...) const {}
+    void dbg(std::string_view) const {}
   #else
     LOG_FN_IMPL(dbg , Level::Debug)
   #endif
