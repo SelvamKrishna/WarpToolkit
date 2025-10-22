@@ -1,17 +1,23 @@
 # WarpToolkit
 
-**WarpToolkit** is a lightweight, high-performance C++ utility library for timing, logging, and benchmarking.
-It provides modern C++ utilities like high-resolution timers, hierarchical task timing, and flexible logging with ANSI color support.
+**WarpToolkit** is a lightweight, high-performance **C++20 utility library** for **logging**, **timing**, **benchmarking**, and **unit testing**.
+It provides modern C++ utilities for:
+
+- High-resolution timers and hierarchical task timing
+
+- Flexible, ANSI-colored logging
+
+- Lightweight, structured unit testing
 
 ---
 
-## Features
+## Features Overview
 
-- ### [**warp_log**](warp-log)
-
-- ### [**warp_test**](warp-test)
-
-- ### [**warp_timer**](warp-timer)
+|Module|Features|
+|------|--------|
+|[**warp_log**](warp-log)|ANSI-colored logging, custom tags, timestamps, multiple log levels|
+|[**warp_test**](warp-test)|High-resolution timers, hierarchical timers, function benchmarking|
+|[**warp_timer**](warp-timer)|Structured unit testing, collections, automatic summaries|
 
 ---
 
@@ -22,106 +28,145 @@ It provides *ANSI-colored* console logging, *context tagging*, and optional *tim
 
 |Feature|Description|
 |-------|-----------|
-|Multiple Log Levels|Supports Message, Info, Warn, Error, and Debug (auto-disabled in release builds).|
-|Colored Output|Per-level and per-tag ANSI color customization for clear visibility.|
-|Tagging System|Use one or more tags (`warp::log::Tag`) to organize and contextualize messages.|
-|Timestamp Logging|`TimedLogger` automatically prepends timestamps to all log messages.|
+|**ANSI Colors**|Colored output for log levels and tags|
+|**Custom Tags**|Default or colored tags; can combine multiple tags|
+|**Timestamps**|Optional timestamp logging per message|
+|**Custom Log Levels**|`Message`, `Info`, `Debug`, `Warn`, `Error`|
+|**Thread Safety**|Logs from multiple threads safely|
 
-### Example: Basic Logging
+### Usage Examples
 
 ```cpp
-#include "warp_log/tag.hpp"
-#include "warp_log/logger.hpp"
-
 using namespace warp::log;
 
-int main() {
-    Logger app_log { makeColoredTag(ANSIFore::Green, "[APP]") };
+// Default tag
+Logger logger1 { makeDefaultTag("[HELLO]") };
+logger1.info("Hello World!");
 
-    app_log.info("Application started");
-    app_log.warn("Low memory detected: {} MB left", 128);
-    app_log.err("Critical error: {}", "Failed to load resource");
-}
-```
-
-### Example: Timestamped Logging
-
-```cpp
-#include "warp_log/timed_logger.hpp"
-
-using namespace warp::log;
-
-int main() {
-    TimedLogger timed_log {
-        makeColoredTag(ANSIFore::Yellow, "[CORE]"),
-        ANSIFore::BrightBlue // Timestamp color
-    };
-
-    timed_log.info("Initialized successfully");
-    timed_log.dbg("Loading assets...");
-    timed_log.err("Failed to initialize graphics backend");
-}
-```
-
-### Example: Creating Tags
-
-Tags are simple `std::string`identifiers used to categorize logs.
-
-```cpp
-Tag default_tag = makeDefaultTag("[GAME]");
-Tag colored_tag = makeColoredTag(ANSIFore::Cyan, "[RENDER]");
-```
-
-You can also combine multiple tags for complex log contexts:
-
-```cpp
-std::vector<Tag> tags {
-    makeColoredTag(ANSIFore::Red, "[ENGINE]"),
-    makeColoredTag(ANSIFore::Blue, "[AUDIO]"),
+// Colored tags
+Logger logger2 {
+    { makeColoredTag(ANSIFore::Blue, "[ENGINE]"),
+      makeColoredTag(ANSIFore::Cyan, "[SYSTEM]") }
 };
 
-Logger audio_log { tags };
-audio_log.info("Audio device initialized");
+logger2.warn("Unable to locate resource: {}", "assets/texture.png");
+logger2.err("Failed to load plugin");
+
+// Timestamps
+
+TimedLogger timed_logger { makeDefaultTag("[TIMED]"), ANSIFore::Yellow };
+timed_logger.info("Hello with timestamp!");
 ```
-
-### Internal Overview
-
-|Component|Description|
-|---------|-----------|
-|`warp::log::Logger`|Base class for logging with context and colorized tags.|
-|`warp::log::TimedLogger`|Extends `Logger` to add timestamped messages.|
-|`warp::log::Tag`|Type alias for std::string, representing a contextual identifier.|
-
----
 
 ## Warp Test
 
-*Lightweight*, header-only *unit testing framework* for C++20, designed for *readable*, *colorized*, and *structured* console output.
-It integrates seamlessly with [Warp Log](warp-log) to give hierarchical test results with ANSI colors.
+**Warp Test** is a **lightweight unit testing framework** with hierarchical, colorized reporting.
 
-|Feature|Description|
-|-------|-----------|
-|Colorized Output|Clearly distinguishes suites, test cases, and pass/fail status.|
-|Automatic Summaries|Each suite and collection automatically reports passed/total case counts for clear progress tracking.|
-|Hierarchical Organization|Supports Test Cases -> Suites → Collections → Registry for structured tests.|
+| Feature | Description |
+| ------- | ----------- |
+|**Colorized Output**|Distinguishes suites, cases, pass/fail status|
+|**Hierarchical Organization**|Suites → Collections → Registry|
+|**Automatic Summaries**|[passed/total] reporting for suites and collections|
+|**Macro Helpers**|`TEST_SUITE`, `TEST_EQ`, `TEST_NEQ` simplify test writing|
 
-### Example: Creating a Test Suite
+---
+
+### Example: Test Suite
 
 ```cpp
-#include "warp_test/suite.hpp"
 using namespace warp::test;
 
 TEST_SUITE(MathTests) {
     Suite suite("Basic Math");
 
     suite.test(1 + 1 == 2, "Addition works");
-    suite.test(2 * 2 == 4, "Multiplication works");
-
-    TEST_EQ(suite, 5 - 3, 2);  // Macro helper
+    TEST_EQ(suite, 5 - 3, 2);
     TEST_NEQ(suite, 2 + 2, 5);
 
     return suite.getSummary();
 }
+```
+
+### Example: Registry with Multiple Collections
+
+```cpp
+int main() {
+    Registry registry;
+
+    registry.addCollection("Arithmetic", { &MathTests, &AlgebraTests });
+    registry.addCollection("Physics", { &KinematicsTests, &DynamicsTests });
+
+    return registry.conclude();
+}
+```
+
+---
+
+## Warp Timer
+
+**Warp Timer** measures execution duration with **high precision** and supports **benchmarking**.
+
+|Feature|Description|
+|-------|-----------|
+|**High-Resolution Timing**|RAII-based timers and manual start/stop|
+|**Function Benchmarking**|Measure mean and median across multiple runs|
+|**Flexible Time Units**|`MicroSeconds`, `MilliSeconds`, `Seconds`|
+|**ANSI-Colored Output**|Logs times in visually clear, color-coded format|
+
+### Examples
+
+Scoped Timer
+
+```cpp
+{
+    Timer t("Subtask 1");
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+}
+```
+
+Manual Timer
+
+```cpp
+Timer t("Sorting", TimeUnit::Milliseconds);
+t.start();
+sort(array.begin(), array.end());
+t.stop();
+t.reset();
+```
+
+Function Timing
+
+```cpp
+Timer::measure<TimeUnit::Seconds>(
+    "Multiply matrices",
+    [] { multiplyMatrix(100); }
+);
+```
+
+Function Benchmarking
+
+```cpp
+Timer::benchmark<TimeUnit::Seconds>(
+    "Matrix multiplication (20 runs)",
+    [] { multiplyMatrix(100); },
+    20
+);
+```
+
+Hierarchy Timer
+
+```cpp
+HierarchyTimer ht("Main Task");
+
+// Subtask 1
+ht.subTask("Load Texture", [] {
+    loadTexture("texture.png");
+});
+
+// Subtask 2
+ht.subTask("Load Music", [] {
+    loadMusic("music.mp3");
+});
 ```
 
 ### Example: Organizing Multiple Suites
@@ -155,75 +200,5 @@ int main() {
 |`warp::test::Suite`|Represents a single suite of tests; logs results and summary.|
 |`warp::test::internal::Summary`|Tracks passed, failed, and total test counts|
 |`warp::test::Registry`|Manages multiple collections of suites and prints the overall summary.|
-
----
-
-## Warp Timer
-
-**Lightweight** and precise timing utility designed to measure **execution durations**, **profile performance**, and **benchmark** code sections in real time.
-
-| Feature | Description |
-| ------- | ----------- |
-| High-Resolution Timers | Provides accurate timing for code execution. |
-| Scoped Timing | Automatically measures the duration of a code block when used with RAII-style wrappers. |
-| Hierarchical Timing | Supports nested timers for detailed performance analysis. |
-| Function Benchmarking | Allows benchmarking of functions with configurable iterations. |
-
----
-
-### `warp::Timer` Showcase
-
-```cpp
-void someFunction() {
-using namespace warp; // For brevity
-
-{
-    Timer t0("Subtask 1"); // Create timer
-    // simulate work
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-} // End of scope, timer stops and logs time taken
-
-// Create timer with custom time unit
-Timer t1 {"Sort an array", TimeUnit::Milliseconds};
-
-t1.start(); // Manually start the timer
-demo::sortRNGArray(100);
-t1.stop(); // Manually stop the timer
-
-// Measure function execution time
-Timer::measure<TimeUnit::Seconds>(
-    "Multiply 2 matrices", // Task name
-    [] { demo::multiplyRNGMatrix(100); } // Function to measure
-);
-
-// Benchmark function over multiple iterations
-Timer::benchmark<TimeUnit::Seconds>(
-    "Multiply 2 matrices",
-    [] { demo::multiplyRNGMatrix(100); },
-    20 // Sample size
-);
-}
-```
-
-### `warp::HierarchyTimer` Showcase
-
-```cpp
-using namespace warp; // For brevity
-
-void demo::loadStuff() {
-    HierarchyTimer ht {"Main Task"}; // Create main hierarchical timer
-
-    // Subtask 1
-    ht.subTask("Load Texture", [&] {
-        render::loadTexture("texture.png");
-    });
-
-    // Subtask 2 with custom time unit
-    ht.subTask<TimeUnit::Microseconds>("Load Music", [&] {
-        audio::loadMusic("music.mp3");
-    });
-
-} // Main Task ends, logs hierarchical timing information
-```
 
 ---

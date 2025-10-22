@@ -46,28 +46,14 @@ private:
       ? (results[SIZE / 2 - 1] + results[SIZE / 2]) / 2.0
       : results[SIZE / 2];
 
-    const double MODE {
-      [&] {
-        size_t max_count = 1, count = 1;
-        double mode;
-        for (size_t i = 1; i < SIZE; ++i) {
-          count = (results[i] == results[i - 1]) ? count + 1 : 1;
-          if (count > max_count) { max_count = count; mode = results[i]; }
-        }
-
-        return mode;
-      } ()
-    };
-
     const char U = internal::timeUnitPrefix(time_unit);
 
     const std::string prefix = makeColoredTag(log::ANSIFore::Blue, "[TIMER][BENCHMARK]");
     const std::string msg = std::format(
-      "{}\n  {}[MEAN]   {}: {:.3f} {}s\n  {}[MEDIAN] {}: {:.3f} {}s\n  {}[MODE]   {}: {:.3f} {}s",
+      "{}\n  {}[MEAN]   {}: {:.3f} {}s\n  {}[MEDIAN] {}: {:.3f} {}s\n",
       desc,
       setColor(log::ANSIFore::Green), log::resetColor(), MEAN, U,
-      setColor(log::ANSIFore::Green), log::resetColor(), MEDIAN, U,
-      setColor(log::ANSIFore::Green), log::resetColor(), MODE, U
+      setColor(log::ANSIFore::Green), log::resetColor(), MEDIAN, U
     );
 
     log::internal::writeToConsole(log::Level::Info, prefix, msg);

@@ -27,7 +27,7 @@ public:
       << _test_summary.getSummaryString() << std::endl;
   }
 
-  [[nodiscard]] Registry& addCollection(
+  Registry& addCollection(
     std::string_view name,
     std::vector<std::function<internal::Summary()>> suites
   ) noexcept {

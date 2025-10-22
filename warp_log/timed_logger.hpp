@@ -12,14 +12,14 @@ class TimedLogger final : public Logger {
 private:
   ANSIFore _timestamp_color;
 
-  mutable std::string _cached_time_stamp {"\033[FGm[HH:MM:SS]\033[0m"};
+  mutable std::string _cached_time_stamp {};
   mutable std::chrono::system_clock::time_point _last_timestamp_update;
   static constexpr std::chrono::seconds TIMESTAMP_CACHE_DURATION {1};
 
   [[nodiscard]] std::string _getTimestampTag() const noexcept {
     auto now = std::chrono::system_clock::now();
 
-    if (now - _last_timestamp_update > TIMESTAMP_CACHE_DURATION) {
+    if (now - _last_timestamp_update > TIMESTAMP_CACHE_DURATION || _cached_time_stamp.empty()) {
       char buf[sizeof("[HH:MM:SS]")] {};
       std::time_t t = std::chrono::system_clock::to_time_t(now);
       std::tm tm_struct{};
@@ -38,7 +38,7 @@ private:
 
   template <typename... Args>
   void _log(Level lvl, std::format_string<Args...> msg, Args&&... args) const {
-    const std::string PREFIX = _getTimestampTag() + _context; // Can be improved
+    const std::string PREFIX = _getTimestampTag() + _context;
 
     if constexpr (sizeof...(Args) == 0) internal::writeToConsole(lvl, PREFIX, msg.get());
     else {
