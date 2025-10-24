@@ -46,6 +46,8 @@ public:
   LOG_FN_IMPL(dbg, Level::Debug)
 #endif
 
+  [[nodiscard]] constexpr std::string_view getContext() const noexcept { return _ctx; }
+
 #undef LOG_FN_IMPL
 };
 

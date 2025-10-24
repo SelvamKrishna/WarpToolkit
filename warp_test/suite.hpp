@@ -15,7 +15,7 @@ private:
   log::Logger _logger;
 
   void _logTestCase(bool cond, std::string_view desc) noexcept {
-    static const log::Tag CASE_TAG = log::makeColoredTag(log::ANSIFore::Blue, "\t\t\t[CASE]");
+    static const log::Tag CASE_TAG = log::makeColoredTag(log::ANSIFore::Blue, "\t\t[CASE]");
     static const log::Tag PASS_TAG = log::makeColoredTag(log::ANSIFore::Green, "[PASS]");
     static const log::Tag FAIL_TAG = log::makeColoredTag(log::ANSIFore::Red, "[FAIL]");
     std::cout << CASE_TAG << (cond ? PASS_TAG : FAIL_TAG) << " : " << desc << '\n';
@@ -25,7 +25,7 @@ public:
   Suite() = delete;
 
   explicit Suite(std::string_view desc) noexcept : _logger {
-    log::makeColoredTag(log::ANSIFore::Blue, "\t\t[SUITE]")
+    log::makeColoredTag(log::ANSIFore::Blue, "\t[SUITE]")
   } { _logger.msg(desc); }
 
   ~Suite() noexcept {_logger.msg(_test_summary.getSummaryString()); }

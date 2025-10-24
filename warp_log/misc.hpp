@@ -27,6 +27,8 @@ inline std::ostream& operator<<(std::ostream& os, ANSIFore fg) noexcept {
 
 [[nodiscard]] inline constexpr const char* resetColor() noexcept { return "\033[0m"; }
 
+inline constexpr const char* BREAK_LINE = "---\n";
+
 namespace internal {
 
 static std::mutex s_console_mutex;
