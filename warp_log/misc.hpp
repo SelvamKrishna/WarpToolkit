@@ -17,6 +17,10 @@ enum class ANSIFore : uint8_t {
   LightBlack = 90, LightRed, LightGreen, LightYellow, LightBlue, LightMagenta, LightCyan, LightWhite
 };
 
+inline std::ostream& operator<<(std::ostream& os, ANSIFore fg) noexcept {
+  return os << "\033[" << static_cast<int>(fg) << 'm';
+}
+
 [[nodiscard]] inline std::string setColor(ANSIFore fg) noexcept {
   return std::format("\033[{}m", static_cast<int>(fg));
 }
@@ -52,37 +56,43 @@ static std::mutex s_console_mutex;
 }
 
 struct ThreadLocalBuffer {
-  std::string log_buffer;
-  std::string format_buffer;
+  std::string log_buf;
+  std::string fmt_buf;
 
-  static constexpr size_t DEFAULT_LOG_BUFFER_SIZE = 128;
-  static constexpr size_t DEFAULT_FORMAT_BUFFER_SIZE = 64;
+  static constexpr size_t DEFAULT_LOG_BUFFER_SIZE = 256;
+  static constexpr size_t DEFAULT_FMT_BUFFER_SIZE = 128;
 
   explicit ThreadLocalBuffer() {
-    log_buffer.reserve(DEFAULT_LOG_BUFFER_SIZE);
-    format_buffer.reserve(DEFAULT_FORMAT_BUFFER_SIZE);
+    log_buf.reserve(DEFAULT_LOG_BUFFER_SIZE);
+    fmt_buf.reserve(DEFAULT_FMT_BUFFER_SIZE);
   }
 };
 
 inline thread_local ThreadLocalBuffer tl_buf {};
 
-inline void writeToConsole(Level lvl, std::string_view prefix, std::string_view msg) {
-  std::string& log_buffer = tl_buf.log_buffer;
-  log_buffer.clear();
-  log_buffer.append(prefix);
+inline void writeToConsole(Level lvl, std::string_view pre, std::string_view msg) {
+  std::string& log_buf = tl_buf.log_buf;
+  log_buf.clear();
+  log_buf.append(pre);
 
-  if (lvl != Level::Message) {
-    log_buffer
+  const bool HAS_LEVEL = lvl != Level::Message;
+
+  if (HAS_LEVEL) {
+    if (!pre.empty()) log_buf.append(" : ");
+
+    log_buf
       .append(setColor(levelToColor(lvl)))
       .append(levelToString(lvl))
       .append(resetColor());
   }
 
-  log_buffer.append(" : ").append(msg).push_back('\n');
+  if (HAS_LEVEL || !log_buf.empty()) log_buf.append(" : ");
 
-  std::scoped_lock lock{s_console_mutex};
-  std::ostream& os = streamFromLevel(lvl);
-  os.write(log_buffer.data(), static_cast<std::streamsize>(log_buffer.size()));
+  log_buf.append(msg).push_back('\n');
+
+  std::ostream& os {streamFromLevel(lvl)};
+  std::scoped_lock lock {s_console_mutex};
+  os.write(log_buf.data(), static_cast<std::streamsize>(log_buf.size()));
   os.flush();
 }
 
