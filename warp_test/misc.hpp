@@ -7,22 +7,24 @@
 
 namespace warp::test::internal {
 
+/// Tool to monitor the results of the test cases
 class Summary final {
 private:
-  uint64_t _total_case  {0};
-  uint64_t _passed_case {0};
+  uint32_t _total_case  {0};
+  uint32_t _passed_case {0};
 
 public:
   explicit Summary() noexcept = default;
 
+  /// Re-evaluate summary with new test case
   constexpr void addCase(bool case_res) noexcept {
     _total_case++;
     _passed_case += static_cast<int>(case_res);
   }
 
-  [[nodiscard]] constexpr uint64_t getTotalCases()  const noexcept { return _total_case; }
-  [[nodiscard]] constexpr uint64_t getPassedCases() const noexcept { return _passed_case; }
-  [[nodiscard]] constexpr uint64_t getFailedCases() const noexcept { return _total_case - _passed_case; }
+  [[nodiscard]] constexpr uint32_t getTotalCases()  const noexcept { return _total_case; }
+  [[nodiscard]] constexpr uint32_t getPassedCases() const noexcept { return _passed_case; }
+  [[nodiscard]] constexpr uint32_t getFailedCases() const noexcept { return _total_case - _passed_case; }
 
   friend Summary& operator+=(Summary& self, const Summary& other) noexcept {
     self._total_case  += other._total_case;
@@ -30,6 +32,7 @@ public:
     return self;
   }
 
+  /// Formated string of the summary : "[passed/total]"
   std::string getSummaryString() const noexcept {
     return std::format("{}[{}/{}]{}", log::setColor(log::ANSIFore::Yellow), _passed_case, _total_case, log::resetColor());
   }

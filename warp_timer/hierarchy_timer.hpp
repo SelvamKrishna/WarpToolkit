@@ -7,8 +7,9 @@
 
 #include <functional>
 
-namespace warp {
+namespace warp::timer {
 
+/// Measures and logs the total time taken in a hierarchical manner
 class HierarchyTimer final : public Timer {
 private:
   double _sub_task_measure {0.0};
@@ -49,6 +50,8 @@ public:
     }.msg(internal::formatElapsed(ELAPSED, _UNIT));
   }
 
+/// --- Sub task measuring utils ---
+
   template <TimeUnit Target>
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
     _subTaskImpl(desc, _measureCallableTimeMS(callable), Target);
@@ -65,4 +68,4 @@ public:
   static void benchmark(std::string_view, const std::function<void()>&, uint32_t) = delete;
 };
 
-} // namespace warp
+} // namespace warp::timer

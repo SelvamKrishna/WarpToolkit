@@ -8,9 +8,9 @@
 
 namespace warp::log {
 
+/// Tools to add context and timestamp to console messages
 class TimedLogger final : public Logger {
 private:
-  ANSIFore                                      _timestamp_color  {ANSIFore::White};
   mutable std::string                           _cached_timestamp {""};
   mutable std::chrono::system_clock::time_point _last_update      {
     std::chrono::system_clock::time_point::min()
@@ -31,7 +31,7 @@ private:
       localtime_r(&t, &tm_struct);
 #endif
       std::strftime(buf, sizeof(buf), "[%H:%M:%S]", &tm_struct);
-      _cached_timestamp = makeColoredTag(_timestamp_color, buf);
+      _cached_timestamp = makeColoredTag(timestamp_color, buf);
       _last_update = now;
     }
 
@@ -47,18 +47,20 @@ private:
   }
 
 public:
+  ANSIFore timestamp_color {ANSIFore::White};
+
   constexpr explicit TimedLogger() noexcept = default;
 
   constexpr explicit TimedLogger(Tag tag, ANSIFore timestamp_color = ANSIFore::White) noexcept
-  : Logger           {std::move(tag)}
-  , _timestamp_color {timestamp_color} {}
+  : Logger          {std::move(tag)}
+  , timestamp_color {timestamp_color} {}
 
   explicit TimedLogger(
     const std::vector<Tag>& tags,
     ANSIFore timestamp_color = ANSIFore::White
   ) noexcept
-  : Logger           {std::move(internal::cacheTagVec(tags))}
-  , _timestamp_color {timestamp_color} {}
+  : Logger          {std::move(internal::cacheTagVec(tags))}
+  , timestamp_color {timestamp_color} {}
 
 #define LOG_FN_IMPL(FN, LVL)  \
   template <typename... Args> \
@@ -70,16 +72,13 @@ public:
   LOG_FN_IMPL(warn, Level::Warn)
   LOG_FN_IMPL(err , Level::Error)
 
-#ifdef NDEBUG // Logger::dbg() does nothing in release build
+#ifdef NDEBUG // Logger::dbg() is disabled in release build
   template <typename... Args>
   constexpr void dbg(std::format_string<Args...>, Args&&...) const noexcept {}
   constexpr void dbg(std::string_view) const noexcept {}
 #else
   LOG_FN_IMPL(dbg , Level::Debug)
 #endif
-
-  constexpr void setTimestampColor(ANSIFore color) noexcept { _timestamp_color = color; }
-  constexpr void refreshTimestamp() const noexcept { _last_update = std::chrono::system_clock::time_point::min(); }
 
 #undef LOG_FN_IMPL
 };

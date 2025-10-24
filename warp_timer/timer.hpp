@@ -14,8 +14,9 @@
 #include <algorithm>
 #include <numeric>
 
-namespace warp {
+namespace warp::timer {
 
+/// Tool to record and log the elapsed time
 class Timer {
 private:
   static void _logElapsed(std::string_view desc, double elapsed, TimeUnit unit) noexcept {
@@ -100,6 +101,9 @@ public:
 
   void reset() noexcept { start(); }
 
+/// --- Benchmarking tools ---
+
+  /// Measures the total time taken to execute the given callable function
   template <TimeUnit InTimeUnit = TimeUnit::MilliSeconds>
   static double measure(std::string_view desc, const std::function<void()>& callable) noexcept {
     const double ELAPSED {
@@ -109,6 +113,7 @@ public:
     return ELAPSED;
   }
 
+  /// Benchmarks the execution time of the given callable function
   template <TimeUnit InTimeUnit = TimeUnit::MilliSeconds>
   static void benchmark(std::string_view desc, const std::function<void()>& callable, uint32_t samples = 8) noexcept {
     std::vector<double> results;
@@ -121,4 +126,4 @@ public:
   }
 };
 
-} // namespace warp
+} // namespace warp::timer

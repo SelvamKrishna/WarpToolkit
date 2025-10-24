@@ -6,11 +6,16 @@
 #include <format>
 #include <cstdint>
 
-namespace warp {
+namespace warp::timer {
 
+/// Enumeration of all supported time units
 enum class TimeUnit : uint8_t { MicroSeconds, MilliSeconds, Seconds, };
 
-namespace internal {
+} // namespace warp::timer
+
+namespace warp::timer::internal {
+
+/// --- warp::TimeUnit utils ---
 
 inline constexpr int unitID(TimeUnit u) noexcept { return static_cast<int>(u); }
 
@@ -37,12 +42,11 @@ inline constexpr char timeUnitPrefix(TimeUnit u) noexcept {
   return PREFIX_CHAR[unitID(u)];
 }
 
+/// Returns the formatted string of the given elapsed time
 inline std::string formatElapsed(double val, TimeUnit u) noexcept {
   return std::format(
     "{}[{:.3f} {}s]{}", log::setColor(log::ANSIFore::Yellow), val, timeUnitPrefix(u), log::resetColor()
   );
 }
 
-} // namespace internal
-
-} // namespace warp
+} // namespace warp::timer::internal

@@ -12,25 +12,17 @@
 
 namespace warp::test {
 
+/// Tool to evaluate and log the result of mulitple test suites
 class Registry final {
 private:
-  std::vector<std::string> _collection_score_vec;
-  internal::Summary _test_summary;
+  std::vector<std::string> _collection_score_vec {};
+  internal::Summary        _test_summary         {};
 
 public:
   explicit Registry() noexcept = default;
+  ~Registry() noexcept = default;
 
-  ~Registry() noexcept {
-    log::internal::writeToConsole(
-      log::Level::Message,
-      std::format("{}{}", log::BREAK_LINE, log::makeColoredTag(log::ANSIFore::Blue, "[REGISTRY]")),
-      _test_summary.getSummaryString()
-    );
-
-    const log::Logger COLLECTION_LOG {log::makeColoredTag(log::ANSIFore::Blue, "\t[COLLECTION]")};
-    for (const auto& COLL_SCORE : _collection_score_vec) COLLECTION_LOG.msg(COLL_SCORE);
-  }
-
+  /// Evaluates and logs a collection of suite's
   Registry& addCollection(
     std::string_view name,
     std::vector<std::function<internal::Summary()>> suites
@@ -49,7 +41,20 @@ public:
     return *this;
   }
 
-  [[nodiscard]] constexpr int conclude() const noexcept { return (_test_summary.getFailedCases() == 0) ? 0 : 1; }
+  /// Logs the overall collection summaries to the console
+  /// Returns 0 if all cases passed else 1
+  [[nodiscard]] constexpr int conclude() const noexcept {
+    log::internal::writeToConsole(
+      log::Level::Message,
+      std::format("{}{}", log::BREAK_LINE, log::makeColoredTag(log::ANSIFore::Blue, "[REGISTRY]")),
+      _test_summary.getSummaryString()
+    );
+
+    const log::Logger COLLECTION_LOG {log::makeColoredTag(log::ANSIFore::Blue, "\t[COLLECTION]")};
+    for (const auto& COLL_SCORE : _collection_score_vec) COLLECTION_LOG.msg(COLL_SCORE);
+
+    return (_test_summary.getFailedCases() == 0) ? 0 : 1;
+  }
 };
 
 } // namespace warp::test

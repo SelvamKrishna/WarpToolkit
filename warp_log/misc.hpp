@@ -3,35 +3,35 @@
 #include <mutex>
 #include <format>
 #include <string>
-#include <vector>
 #include <cstdint>
 #include <iostream>
 
 namespace warp::log {
 
+/// Levels of logging
 enum class Level : uint8_t { Message, Info, Debug, Warn, Error };
 
+/// ANSI codes for colored console output
 enum class ANSIFore : uint8_t {
   Black = 30, Red, Green, Yellow, Blue, Magenta, Cyan, White,
   Reset = 39,
   LightBlack = 90, LightRed, LightGreen, LightYellow, LightBlue, LightMagenta, LightCyan, LightWhite
 };
 
-inline std::ostream& operator<<(std::ostream& os, ANSIFore fg) noexcept {
-  return os << "\033[" << static_cast<int>(fg) << 'm';
-}
+/// --- Console logging utils ---
 
-[[nodiscard]] inline std::string setColor(ANSIFore fg) noexcept {
-  return std::format("\033[{}m", static_cast<int>(fg));
-}
+inline std::ostream& operator<<(std::ostream& os, ANSIFore fg) noexcept { return os << "\033[" << static_cast<int>(fg) << 'm'; }
 
+[[nodiscard]] inline std::string setColor(ANSIFore fg) noexcept { return std::format("\033[{}m", static_cast<int>(fg)); }
 [[nodiscard]] inline constexpr const char* resetColor() noexcept { return "\033[0m"; }
 
 inline constexpr const char* BREAK_LINE = "---\n";
 
-namespace internal {
+} // namespace warp::log
 
-static std::mutex s_console_mutex;
+namespace warp::log::internal {
+
+/// --- warp::log::Level utils ---
 
 [[nodiscard]] inline constexpr std::string_view levelToString(Level lvl) noexcept {
   switch (lvl) {
@@ -57,10 +57,12 @@ static std::mutex s_console_mutex;
   return (lvl == Level::Info || lvl == Level::Debug) ? std::cout : std::cerr;
 }
 
+/// Pre-allocated string buffer for performance boost
 struct ThreadLocalBuffer {
   std::string log_buf;
   std::string fmt_buf;
 
+/// Change below constants if needed
   static constexpr size_t DEFAULT_LOG_BUFFER_SIZE = 256;
   static constexpr size_t DEFAULT_FMT_BUFFER_SIZE = 128;
 
@@ -70,10 +72,12 @@ struct ThreadLocalBuffer {
   }
 };
 
+static std::mutex s_console_mutex {};
 inline thread_local ThreadLocalBuffer tl_buf {};
 
+/// Logs to console with added level prefix
 inline void writeToConsole(Level lvl, std::string_view pre, std::string_view msg) {
-  std::string& log_buf = tl_buf.log_buf;
+  std::string& log_buf = tl_buf.log_buf; // uses pre allocated buffer for performance
   log_buf.clear();
   log_buf.append(pre);
 
@@ -98,21 +102,4 @@ inline void writeToConsole(Level lvl, std::string_view pre, std::string_view msg
   os.flush();
 }
 
-[[nodiscard]] inline std::string cacheTagVec(const std::vector<std::string>& tags, std::string_view delim = "") {
-  if (tags.empty()) return {};
-
-  size_t total_size {delim.size() * (tags.size() - 1)};
-  for (const auto& TAG : tags) total_size += TAG.size();
-
-  std::string result;
-
-  result.reserve(total_size);
-  result.append(tags[0]);
-  for (size_t i = 1; i < tags.size(); ++i) result.append(delim).append(tags[i]);
-
-  return result;
-}
-
-} // namespace internal
-
-} // namespace warp::log
+} // namespace warp::log::internal

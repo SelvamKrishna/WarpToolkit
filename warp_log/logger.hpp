@@ -11,6 +11,7 @@
 
 namespace warp::log {
 
+/// Tool to write contextual messages to console
 class Logger {
 protected:
   std::string _ctx;
@@ -38,7 +39,7 @@ public:
   LOG_FN_IMPL(warn, Level::Warn)
   LOG_FN_IMPL(err , Level::Error)
 
-#ifdef NDEBUG // Logger::dbg() does nothing in release build
+#ifdef NDEBUG // Logger::dbg() disabled in release build
   template <typename... Args>
   constexpr void dbg(std::format_string<Args...>, Args&&...) const noexcept {}
   constexpr void dbg(std::string_view) const noexcept {}

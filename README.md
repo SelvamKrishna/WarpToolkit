@@ -34,7 +34,7 @@ It provides *ANSI-colored* console logging, *context tagging*, and optional *tim
 |**Custom Log Levels**|`Message`, `Info`, `Debug`, `Warn`, `Error`|
 |**Thread Safety**|Logs from multiple threads safely|
 
-### Usage Examples
+### Logging Examples
 
 ```cpp
 using namespace warp::log;
@@ -44,10 +44,10 @@ Logger logger1 { makeDefaultTag("[HELLO]") };
 logger1.info("Hello World!");
 
 // Colored tags
-Logger logger2 {
-    { makeColoredTag(ANSIFore::Blue, "[ENGINE]"),
-      makeColoredTag(ANSIFore::Cyan, "[SYSTEM]") }
-};
+Logger logger2 {{
+    makeColoredTag(ANSIFore::Blue, "[ENGINE]"),
+    makeColoredTag(ANSIFore::Cyan, "[SYSTEM]")
+}};
 
 logger2.warn("Unable to locate resource: {}", "assets/texture.png");
 logger2.err("Failed to load plugin");
@@ -56,6 +56,9 @@ logger2.err("Failed to load plugin");
 
 TimedLogger timed_logger { makeDefaultTag("[TIMED]"), ANSIFore::Yellow };
 timed_logger.info("Hello with timestamp!");
+
+// Colored console logging
+std::cout << ANSIFore::Blue << "Hello World\n" << ANSIFore::Reset;
 ```
 
 ## Warp Test
@@ -91,14 +94,22 @@ TEST_SUITE(MathTests) {
 
 ```cpp
 int main() {
-    Registry registry;
-
-    registry.addCollection("Arithmetic", { &MathTests, &AlgebraTests });
-    registry.addCollection("Physics", { &KinematicsTests, &DynamicsTests });
-
-    return registry.conclude();
+    return Registry {}
+        .addCollection("Arithmetic", { &MathTests, &AlgebraTests })
+        .addCollection("Physics", { &KinematicsTests, &DynamicsTests })
+        .conclude();
 }
 ```
+
+### Macros Overview
+
+|Macro|Description|
+|-----|-----------|
+|`TEST_SUITE(FN)`|Defines a function returning a Summary for a suite.|
+|`TEST_EQ(SUITE, ACTUAL, EXPECTED)`|Checks that ACTUAL == EXPECTED.|
+|`TEST_NEQ(SUITE, ACTUAL, EXPECTED)`|Checks that ACTUAL != EXPECTED.|
+
+---
 
 ---
 
@@ -115,26 +126,27 @@ int main() {
 
 ### Examples
 
-Scoped Timer
+- Scoped Timer
 
 ```cpp
-{
-    Timer t("Subtask 1");
+using namespace warp::timer;
+
+void sleepFor500ms() {
+    Timer t("Sleep For 500ms");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
 ```
 
-Manual Timer
+- Manual Timer
 
 ```cpp
 Timer t("Sorting", TimeUnit::Milliseconds);
 t.start();
 sort(array.begin(), array.end());
 t.stop();
-t.reset();
 ```
 
-Function Timing
+- Function Timing
 
 ```cpp
 Timer::measure<TimeUnit::Seconds>(
@@ -143,20 +155,20 @@ Timer::measure<TimeUnit::Seconds>(
 );
 ```
 
-Function Benchmarking
+- Function Benchmarking
 
 ```cpp
 Timer::benchmark<TimeUnit::Seconds>(
     "Matrix multiplication (20 runs)",
     [] { multiplyMatrix(100); },
-    20
+    20 // sample size
 );
 ```
 
-Hierarchy Timer
+- Hierarchy Timer
 
 ```cpp
-HierarchyTimer ht("Main Task");
+HierarchyTimer ht("Load Assets");
 
 // Subtask 1
 ht.subTask("Load Texture", [] {
@@ -168,37 +180,3 @@ ht.subTask("Load Music", [] {
     loadMusic("music.mp3");
 });
 ```
-
-### Example: Organizing Multiple Suites
-
-```cpp
-#include "warp_test/registry.hpp"
-using namespace warp::test;
-
-int main() {
-    Registry registry;
-
-    registry.addCollection("Arithmetic", { &MathTests, &AlgebraTests });
-    registry.addCollection("Physics", { &KinematicsTests, &DynamicsTests });
-
-    return registry.conclude(); // 0 if all tests passed, 1 otherwise
-}
-```
-
-### Macros Overview
-
-|Macro|Description|
-|-----|-----------|
-|`TEST_SUITE(FN)`|Defines a function returning a Summary for a suite.|
-|`TEST_EQ(SUITE, ACTUAL, EXPECTED)`|Checks that ACTUAL == EXPECTED.|
-|`TEST_NEQ(SUITE, ACTUAL, EXPECTED)`|Checks that ACTUAL != EXPECTED.|
-
-### Internal Overview
-
-|Component|Description|
-|---------|-----------|
-|`warp::test::Suite`|Represents a single suite of tests; logs results and summary.|
-|`warp::test::internal::Summary`|Tracks passed, failed, and total test counts|
-|`warp::test::Registry`|Manages multiple collections of suites and prints the overall summary.|
-
----
