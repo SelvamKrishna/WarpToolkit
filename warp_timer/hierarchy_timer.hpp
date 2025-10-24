@@ -1,9 +1,10 @@
+#pragma once
+
 #include "timer.hpp"
 
 #include "warp_log/misc.hpp"
+#include "warp_log/logger.hpp"
 
-#include <string>
-#include <iostream>
 #include <functional>
 
 namespace warp {
@@ -13,29 +14,27 @@ private:
   double _sub_task_measure {0.0};
 
   void _logTimerStart() const noexcept {
-    std::cout
-      << log::setColor(log::ANSIFore::Blue)
-      << "[TIMER]"
-      << log::resetColor() << " : " << _DESC << " {\n\n";
+    log::Logger {log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][HIERARCHY]")}.msg(_DESC);
   }
 
   void _subTaskImpl(std::string_view desc, double elapsed_ms, TimeUnit display_unit) noexcept {
     _sub_task_measure += internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, _UNIT);
-
-    std::cout
-      << log::setColor(log::ANSIFore::Blue)
-      << "\t[TIMER][SUB]"
-      << log::resetColor()
-      << internal::formatElapsed(
+    log::Logger {
+      log::makeColoredTag(log::ANSIFore::Blue, "\t[TIMER][SUB_TASK]")
+    }.msg(
+      "{} : {}",
+      internal::formatElapsed(
         internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, display_unit),
         display_unit
-      ) << " : " << desc << '\n';
+      ),
+      desc
+    );
   }
 
 public:
   explicit HierarchyTimer() noexcept : Timer {} { _logTimerStart(); }
 
-  explicit HierarchyTimer(std::string description, TimeUnit unit = TimeUnit::MilliSeconds) noexcept
+  explicit HierarchyTimer(std::string_view description, TimeUnit unit = TimeUnit::MilliSeconds) noexcept
   : Timer {std::move(description), unit} { _logTimerStart(); }
 
   ~HierarchyTimer() noexcept { if (_is_running) stop(); }
@@ -44,19 +43,13 @@ public:
   void reset() noexcept = delete;
 
   void stop() noexcept {
-    const double ELAPSED = _stopAndGetElapsed();
-    std::cout
-      << "\n} "
-      << std::format(
-        "{}[{:.3f} {}s]{}\n",
-        log::setColor(log::ANSIFore::Yellow),
-        ELAPSED,
-        internal::timeUnitPrefix(_UNIT),
-        log::resetColor()
-      );
+    const double ELAPSED {_stopAndGetElapsed()};
+    log::Logger {
+      log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][HIERARCHY]")
+    }.msg(internal::formatElapsed(ELAPSED, _UNIT));
   }
 
-  template <TimeUnit Target = TimeUnit::MilliSeconds>
+  template <TimeUnit Target>
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
     _subTaskImpl(desc, _measureCallableTimeMS(callable), Target);
   }

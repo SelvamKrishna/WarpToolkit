@@ -20,16 +20,16 @@ static inline constexpr double TABLE[3][3] {
   {1'000'000, 1000.0,   1.0     },
 };
 
-template <TimeUnit Source = TimeUnit::MilliSeconds, TimeUnit Target>
+template <TimeUnit FromTimeUnit = TimeUnit::MilliSeconds, TimeUnit ToTimeUnit>
 inline constexpr double convertUnit(double value) noexcept {
 
-  if constexpr (Source == Target) return value;
-  return value * TABLE[unitID(Source)][unitID(Target)];
+  if constexpr (FromTimeUnit == ToTimeUnit) return value;
+  return value * TABLE[unitID(FromTimeUnit)][unitID(ToTimeUnit)];
 }
 
-inline double convertUnit(double value, TimeUnit source, TimeUnit target) noexcept {
-  if (source == target) return value;
-  return value * TABLE[unitID(source)][unitID(target)];
+inline double convertUnit(double val, TimeUnit from_u, TimeUnit to_u) noexcept {
+  if (from_u == to_u) return val;
+  return val * TABLE[unitID(from_u)][unitID(to_u)];
 }
 
 inline constexpr char timeUnitPrefix(TimeUnit u) noexcept {
@@ -37,9 +37,9 @@ inline constexpr char timeUnitPrefix(TimeUnit u) noexcept {
   return PREFIX_CHAR[unitID(u)];
 }
 
-inline std::string formatElapsed(double value, TimeUnit u) noexcept {
+inline std::string formatElapsed(double val, TimeUnit u) noexcept {
   return std::format(
-    "{}[{:.3f} {}s]{}", log::setColor(log::ANSIFore::Yellow), value, timeUnitPrefix(u), log::resetColor()
+    "{}[{:.3f} {}s]{}", log::setColor(log::ANSIFore::Yellow), val, timeUnitPrefix(u), log::resetColor()
   );
 }
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "warp_log/misc.hpp"
-#include "warp_log/tag.hpp"
+#include "misc.hpp"
+#include "tag.hpp"
 
 #include <string>
 #include <format>
