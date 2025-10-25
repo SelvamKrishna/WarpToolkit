@@ -21,18 +21,23 @@ private:
     log::Logger {log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][HIERARCHY]")}.msg(_DESC);
   }
 
-  void _subTaskImpl(std::string_view desc, double elapsed_ms, TimeUnit display_unit) noexcept {
+  void _subTaskOpen(std::string_view desc) const noexcept {
+    log::Logger {{
+      log::makeDepthTag(_sub_task_depth),
+      log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][TASK]")
+    }}.msg(desc);
+  }
+
+  void _subTaskImpl(std::string_view desc, double elapsed_ms, TimeUnit display_unit, uint32_t depth) noexcept {
     _sub_task_measure += internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, _UNIT);
     log::Logger {{
-      log::makeDepthTag(_sub_task_depth++),
+      log::makeDepthTag(depth),
       log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][TASK]")
     }}.msg(
-      "{} : {}",
       internal::formatElapsed(
         internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, display_unit),
         display_unit
-      ),
-      desc
+      )
     );
   }
 
@@ -58,11 +63,15 @@ public:
 
   template <TimeUnit Target>
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
-    _subTaskImpl(desc, internal::measureCallableTimeMS(callable), Target);
+    _subTaskOpen(desc);
+    _subTaskImpl(desc, internal::measureCallableTimeMS(callable), Target, _sub_task_depth++);
+    _sub_task_depth--;
   }
 
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
-    _subTaskImpl(desc, internal::measureCallableTimeMS(callable), _UNIT);
+    _subTaskOpen(desc);
+    _subTaskImpl(desc, internal::measureCallableTimeMS(callable), _UNIT, _sub_task_depth++);
+    _sub_task_depth--;
   }
 
 };
