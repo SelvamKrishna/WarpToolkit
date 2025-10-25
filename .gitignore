@@ -12,6 +12,7 @@ compile_flags.txt
 */*.dll
 */*.exe
 /build/
+makefile
 
 # -- Misc --
 /test/
