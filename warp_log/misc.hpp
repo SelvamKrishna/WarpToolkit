@@ -13,9 +13,23 @@ enum class Level : uint8_t { Message, Info, Debug, Warn, Error };
 
 /// ANSI codes for colored console output
 enum class ANSIFore : uint8_t {
-  Black = 30, Red, Green, Yellow, Blue, Magenta, Cyan, White,
+  Black = 30,
+  Red,
+  Green,
+  Yellow,
+  Blue,
+  Magenta,
+  Cyan,
+  White,
   Reset = 39,
-  LightBlack = 90, LightRed, LightGreen, LightYellow, LightBlue, LightMagenta, LightCyan, LightWhite
+  LightBlack = 90,
+  LightRed,
+  LightGreen,
+  LightYellow,
+  LightBlue,
+  LightMagenta,
+  LightCyan,
+  LightWhite
 };
 
 /// --- Console logging utils ---
