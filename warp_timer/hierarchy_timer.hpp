@@ -14,7 +14,8 @@ namespace warp::timer {
 /// Measures and logs the total time taken in a hierarchical manner
 class HierarchyTimer final : public Timer {
 private:
-  double _sub_task_measure {0.0};
+  double   _sub_task_measure {0.0};
+  uint32_t _sub_task_depth   {1};
 
   void _logTimerStart() const noexcept {
     log::Logger {log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][HIERARCHY]")}.msg(_DESC);
@@ -22,9 +23,10 @@ private:
 
   void _subTaskImpl(std::string_view desc, double elapsed_ms, TimeUnit display_unit) noexcept {
     _sub_task_measure += internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, _UNIT);
-    log::Logger {
-      log::makeColoredTag(log::ANSIFore::Blue, "\t[TIMER][SUB_TASK]")
-    }.msg(
+    log::Logger {{
+      log::makeDepthTag(_sub_task_depth++),
+      log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][TASK]")
+    }}.msg(
       "{} : {}",
       internal::formatElapsed(
         internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, display_unit),
