@@ -15,9 +15,9 @@ It provides modern C++ utilities for:
 
 |Module|Features|
 |------|--------|
-|[**warp_log**](warp-log)|ANSI-colored logging, custom tags, timestamps, multiple log levels|
-|[**warp_test**](warp-test)|High-resolution timers, hierarchical timers, function benchmarking|
-|[**warp_timer**](warp-timer)|Structured unit testing, collections, automatic summaries|
+|[**warp_log**](#warp-log)|ANSI-colored logging, custom tags, timestamps, multiple log levels|
+|[**warp_test**](#warp-test)|High-resolution timers, hierarchical timers, function benchmarking|
+|[**warp_timer**](#warp-timer)|Structured unit testing, collections, automatic summaries|
 
 ---
 
@@ -149,7 +149,7 @@ t.stop();
 - Function Timing
 
 ```cpp
-Timer::measure<TimeUnit::Seconds>(
+measure<TimeUnit::Seconds>(
     "Multiply matrices",
     [] { multiplyMatrix(100); }
 );
@@ -158,7 +158,7 @@ Timer::measure<TimeUnit::Seconds>(
 - Function Benchmarking
 
 ```cpp
-Timer::benchmark<TimeUnit::Seconds>(
+benchmark<TimeUnit::Seconds>(
     "Matrix multiplication (20 runs)",
     [] { multiplyMatrix(100); },
     20 // sample size
@@ -171,12 +171,14 @@ Timer::benchmark<TimeUnit::Seconds>(
 HierarchyTimer ht("Load Assets");
 
 // Subtask 1
-ht.subTask("Load Texture", [] {
-    loadTexture("texture.png");
+ht.subTask("Load Music", [] {
+    loadMusic("music.mp3");
 });
 
 // Subtask 2
-ht.subTask("Load Music", [] {
-    loadMusic("music.mp3");
+ht.subTask("Load Textures", [&] {
+    ht.subTask("Load Texture : sprite_sheet.png", [&] { loadTexture("sprite_sheet.png"); });
+    ht.subTask("Load Texture : bg.png"          , [&] { loadTexture("bg.png");           });
+    ht.subTask("Load Texture : player_anim.png" , [&] { loadTexture("player_anim.png");  });
 });
 ```

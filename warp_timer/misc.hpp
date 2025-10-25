@@ -43,10 +43,10 @@ inline constexpr char timeUnitPrefix(TimeUnit u) noexcept {
 }
 
 /// Returns the formatted string of the given elapsed time
-inline std::string formatElapsed(double val, TimeUnit u) noexcept {
+[[nodiscard]] inline std::string formatElapsed(double val, TimeUnit u) noexcept {
   return std::format(
     "{}[{:.3f} {}s]{}", log::setColor(log::ANSIFore::Yellow), val, timeUnitPrefix(u), log::resetColor()
   );
 }
 
-} // namespace warp::timer::internal
+} // warp::timer::internal
