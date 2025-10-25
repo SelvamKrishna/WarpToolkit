@@ -15,9 +15,9 @@ It provides modern C++ utilities for:
 
 |Module|Features|
 |------|--------|
-|[**warp_log**](warp-log)|ANSI-colored logging, custom tags, timestamps, multiple log levels|
-|[**warp_test**](warp-test)|High-resolution timers, hierarchical timers, function benchmarking|
-|[**warp_timer**](warp-timer)|Structured unit testing, collections, automatic summaries|
+|[**warp_log**](#warp-log)|ANSI-colored logging, custom tags, timestamps, multiple log levels|
+|[**warp_test**](#warp-test)|High-resolution timers, hierarchical timers, function benchmarking|
+|[**warp_timer**](#warp-timer)|Structured unit testing, collections, automatic summaries|
 
 ---
 

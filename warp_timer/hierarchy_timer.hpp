@@ -1,10 +1,12 @@
 #pragma once
 
+#include "misc.hpp"
 #include "timer.hpp"
+#include "benchmarking.hpp"
 
 #include "warp_log/misc.hpp"
-#include "warp_log/logger.hpp"
 
+#include <string_view>
 #include <functional>
 
 namespace warp::timer {
@@ -54,18 +56,13 @@ public:
 
   template <TimeUnit Target>
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
-    _subTaskImpl(desc, _measureCallableTimeMS(callable), Target);
+    _subTaskImpl(desc, internal::measureCallableTimeMS(callable), Target);
   }
 
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
-    _subTaskImpl(desc, _measureCallableTimeMS(callable), _UNIT);
+    _subTaskImpl(desc, internal::measureCallableTimeMS(callable), _UNIT);
   }
 
-  template <TimeUnit>
-  static double measure(std::string_view, const std::function<void()>&) = delete;
-
-  template <TimeUnit>
-  static void benchmark(std::string_view, const std::function<void()>&, uint32_t) = delete;
 };
 
 } // namespace warp::timer
