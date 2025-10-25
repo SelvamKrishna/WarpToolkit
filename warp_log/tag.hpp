@@ -19,14 +19,14 @@ using Tag = std::string;
   return std::format("\033[{}m{}\033[0m", static_cast<int>(fg), text);
 }
 
-[[nodiscard]] inline Tag makeDepthTag(uint32_t depth, std::string_view indent_str) noexcept {
+[[nodiscard]] inline Tag makeDepthTag(uint8_t depth, std::string_view indent_str) noexcept {
   std::string out;
   out.reserve(depth * indent_str.size());
   while (depth--) out.append(indent_str);
   return out;
 }
 
-[[nodiscard]] inline Tag makeDepthTag(uint32_t depth, char indent_char = '\t') noexcept {
+[[nodiscard]] inline Tag makeDepthTag(uint8_t depth, char indent_char = '\t') noexcept {
   std::string out;
   out.reserve(depth);
   while (depth--) out.push_back(indent_char);
