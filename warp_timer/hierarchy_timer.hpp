@@ -15,23 +15,25 @@ namespace warp::timer {
 class HierarchyTimer final : public Timer {
 private:
   double  _sub_task_total {0.0};
-  uint8_t _sub_task_depth {1};
+  uint8_t _sub_task_depth {0};
 
   void _logTimerStart() const noexcept {
     log::Logger {log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][HIERARCHY]")}.msg(_DESC);
   }
 
-  void _subTaskOpen(std::string_view desc) const noexcept {
+/// --- Sub task measuring utils ---
+
+  void _subTaskOpen(std::string_view desc) noexcept {
     log::Logger {{
-      log::makeDepthTag(_sub_task_depth),
+      log::makeDepthTag(++_sub_task_depth),
       log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][TASK]")
     }}.msg(desc);
   }
 
-  void _subTaskClose(std::string_view desc, double elapsed_ms, TimeUnit display_unit, uint32_t depth) noexcept {
+  void _subTaskClose(std::string_view desc, double elapsed_ms, TimeUnit display_unit) noexcept {
     _sub_task_total += internal::convertUnit(elapsed_ms, TimeUnit::MilliSeconds, _UNIT);
     log::Logger {{
-      log::makeDepthTag(depth),
+      log::makeDepthTag(_sub_task_depth--),
       log::makeColoredTag(log::ANSIFore::Blue, "[TIMER][TASK]")
     }}.msg(
       internal::formatElapsed(
@@ -59,19 +61,17 @@ public:
     }.msg(internal::formatElapsed(ELAPSED, _UNIT));
   }
 
-/// --- Sub task measuring utils ---
+/// --- Sub task measuring ---
 
   template <TimeUnit Target>
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
     _subTaskOpen(desc);
-    _subTaskClose(desc, internal::measureCallableTimeMS(callable), Target, _sub_task_depth++);
-    _sub_task_depth--;
+    _subTaskClose(desc, internal::measureCallableTimeMS(callable), Target);
   }
 
   void subTask(std::string_view desc, const std::function<void()>& callable) noexcept {
     _subTaskOpen(desc);
-    _subTaskClose(desc, internal::measureCallableTimeMS(callable), _UNIT, _sub_task_depth++);
-    _sub_task_depth--;
+    _subTaskClose(desc, internal::measureCallableTimeMS(callable), _UNIT);
   }
 
 };
