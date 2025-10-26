@@ -1,9 +1,9 @@
 #pragma once
 
-/// --- Configuration ---
+/// --- Config ---
 
-#define ENABLE_ANSI_COLOR_CODE (true) /// Adds color to console logging
-#define ENABLE_TIMESTAMP       (true) /// Adds timestamp to console logging
+#define ENABLE_COLOR_CODE true
+#define ENABLE_TIMESTAMP  true
 
 /// --- Includes ---
 
@@ -37,7 +37,7 @@ static constexpr const char* LEVEL_STR[] {
   "[FATAL]",
 };
 
-#if ENABLE_ANSI_COLOR_CODE
+#if ENABLE_COLOR_CODE
 static constexpr const char* COLOR_TABLE[] {
   "\033[90m",
   "\033[36m",
@@ -49,7 +49,7 @@ static constexpr const char* COLOR_TABLE[] {
 #endif
 
 [[nodiscard]] static constexpr inline std::string_view openColor(LogLevel level) noexcept {
-#if ENABLE_ANSI_COLOR_CODE
+#if ENABLE_COLOR_CODE
   return COLOR_TABLE[level];
 #else
   return "";
@@ -57,7 +57,7 @@ static constexpr const char* COLOR_TABLE[] {
 }
 
 [[nodiscard]] static constexpr inline const char* closeColor() noexcept {
-#if ENABLE_ANSI_COLOR_CODE
+#if ENABLE_COLOR_CODE
   return "\033[0m : ";
 #else
   return " : ";
@@ -65,7 +65,7 @@ static constexpr const char* COLOR_TABLE[] {
 }
 
 [[nodiscard]] static inline std::string colorText(int color_code, const char* text) noexcept {
-#if ENABLE_ANSI_COLOR_CODE
+#if ENABLE_COLOR_CODE
   return std::format("\033[{}m{}\033[0m", color_code, text);
 #else
   return text;
