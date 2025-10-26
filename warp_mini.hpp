@@ -72,6 +72,11 @@ static constexpr const char* COLOR_TABLE[] {
 #endif
 }
 
+/// [PASS], [FAIL]
+
+static const inline std::string PASS = warp::mini::colorText(32, "[PASS]");
+static const inline std::string FAIL = warp::mini::colorText(31, "[FAIL]");
+
 [[nodiscard]] static inline std::string_view getTimestamp() noexcept {
 #if ENABLE_TIMESTAMP
   std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -136,12 +141,11 @@ static ResetTerminal s_reset_term {};
 
 /// `os << "a ==|!= b" << (flag) ? [P] : [F]`
 
-#define WTEST(CONDITION) do {                            \
-  std::cout << warp::mini::colorText(34, "\n[TEST]");    \
-  (CONDITION)                                            \
-    ? std::cout << warp::mini::colorText(32, "[PASS]")   \
-    : std::cout << warp::mini::colorText(31, "[FAIL]");  \
-  std::cout << " : " #CONDITION "\n";                    \
+#define WTEST(CONDITION) do {                               \
+  std::cout                                                 \
+    << warp::mini::colorText(34, "\n[TEST]")                \
+    << ((CONDITION) ? warp::mini::PASS : warp::mini::FAIL)  \
+    << " : " #CONDITION "\n";                               \
 } while (0)
 
 #define WTEST_EQ(ACTUAL, EXPECTED)  WTEST((ACTUAL) == (EXPECTED))
