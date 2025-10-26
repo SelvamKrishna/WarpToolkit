@@ -105,7 +105,7 @@ static ResetTerminal s_reset_term {};
 
 /// --- MACROS ---
 
-/// `os <<` :
+/// `os <<`
 
 #define WLOG(LVL)                         \
   (LVL < L_WARN ? std::cout : std::cerr)  \
@@ -122,7 +122,7 @@ static ResetTerminal s_reset_term {};
 #define WLOGE  WLOG(L_ERROR)
 #define WLOGF  WLOG(L_FATAL)
 
-/// `if (flag) os <<` :
+/// `if (flag) os <<`
 
 #define WLOG_IF(LVL, CONDITION) \
   if (CONDITION) WLOG(LVL)
@@ -134,15 +134,29 @@ static ResetTerminal s_reset_term {};
 #define WLOGE_IF(CONDITION)  WLOG_IF(L_ERROR, CONDITION)
 #define WLOGF_IF(CONDITION)  WLOG_IF(L_FATAL, CONDITION)
 
-/// os << "a [ == | != ] b" << (a [ == | != ] b ? [PASS] : [FAIL]);
+/// `os << "a ==|!= b" << (flag) ? [P] : [F]`
 
-#define WASSERT(CONDITION) do {                         \
-  std::cout << warp::mini::colorText(34, "\n[TEST]");   \
-  (CONDITION)                                           \
-    ? std::cout << warp::mini::colorText(32, "[PASS]")  \
-    : std::cout << warp::mini::colorText(31, "[FAIL]"); \
-  std::cout << " : " #CONDITION "\n";                   \
+#define WTEST(CONDITION) do {                            \
+  std::cout << warp::mini::colorText(34, "\n[TEST]");    \
+  (CONDITION)                                            \
+    ? std::cout << warp::mini::colorText(32, "[PASS]")   \
+    : std::cout << warp::mini::colorText(31, "[FAIL]");  \
+  std::cout << " : " #CONDITION "\n";                    \
 } while (0)
 
-#define WTEST_EQ(ACTUAL, EXPECTED)  WASSERT((ACTUAL) == (EXPECTED))
-#define WTEST_NE(ACTUAL, EXPECTED)  WASSERT((ACTUAL) != (EXPECTED))
+#define WTEST_EQ(ACTUAL, EXPECTED)  WTEST((ACTUAL) == (EXPECTED))
+#define WTEST_NE(ACTUAL, EXPECTED)  WTEST((ACTUAL) != (EXPECTED))
+
+/// `if (!flag) WLOGF << flag; abort();`
+
+#define WASSERT(CONDITION) do {                       \
+  if (!(CONDITION)) {                                 \
+    WLOGF                                             \
+      << warp::mini::colorText(41, "[ASSERT][FAIL]")  \
+      << " : " #CONDITION "\n";                       \
+    std::abort();                                     \
+  }                                                   \
+} while (0)
+
+#define WASSERT_EQ(ACTUAL, EXPECTED)  WASSERT((ACTUAL) == (EXPECTED))
+#define WASSERT_NE(ACTUAL, EXPECTED)  WASSERT((ACTUAL) != (EXPECTED))
