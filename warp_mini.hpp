@@ -2,14 +2,15 @@
 
 /// --- Config ---
 
-#define ENABLE_COLOR_CODE true
-#define ENABLE_TIMESTAMP  false
+#define ENABLE_TIMESTAMP        false
+#define ENABLE_COLOR_CODE       true
 
-#define TEST_PASS_TEXT "[PASS]"
-#define TEST_FAIL_TEXT "[FAIL]"
+#define TEST_PASS_TEXT          "[PASS]"
+#define TEST_FAIL_TEXT          "[FAIL]"
 
-#define SCOPE_ENTER_TEXT "--{"
-#define SCOPE_LEAVE_TEXT "}--"
+#define ENABLE_SCOPE_FN_DULL    false
+#define SCOPE_ENTER_TEXT        "--{"
+#define SCOPE_LEAVE_TEXT        "}--"
 
 /// --- Includes ---
 
@@ -175,8 +176,14 @@ struct ScopeTracer {
 } // namespace warp::mini
 
 /// ScopeTracer {fn};
-#define WTRACE           warp::mini::ScopeTracer __scope_tracer__ {std::format("{}()", __FUNCTION__)}
-#define WTRACE_C(CLASS)  warp::mini::ScopeTracer __scope_tracer__ {std::format("{}::{}()", #CLASS, __FUNCTION__)}
+
+#if ((ENABLE_COLOR_CODE) && (ENABLE_SCOPE_FN_DULL))
+#define WTRACE           warp::mini::ScopeTracer __trace {std::format("\033[90m{}()\033[0m", __FUNCTION__)}
+#define WTRACE_C(CLASS)  warp::mini::ScopeTracer __trace {std::format("\033[90m{}::{}()\033[0m", #CLASS, __FUNCTION__)}
+#else
+#define WTRACE           warp::mini::ScopeTracer __trace {std::format("{}()", __FUNCTION__)}
+#define WTRACE_C(CLASS)  warp::mini::ScopeTracer __trace {std::format("{}::{}()", #CLASS, __FUNCTION__)}
+#endif
 
 /// `if (flag) os <<`
 
