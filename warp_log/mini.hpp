@@ -3,7 +3,8 @@
 /// --- Configuration ---
 
 #define ENABLE_ANSI_COLOR_CODE (true)
-#define ENABLE_TIMESTAMP       (false)
+#define ENABLE_TIMESTAMP       (true)
+#define ENABLE_SENDER_CONTEXT  (true)
 
 /// --- Includes ---
 
@@ -16,8 +17,6 @@
 
 /// --- Utilities ---
 
-namespace warp::log::mini {
-
 enum MiniLogLevel : uint8_t {
   L_TRACE,
   L_DEBUG,
@@ -27,30 +26,48 @@ enum MiniLogLevel : uint8_t {
   L_FATAL,
 };
 
+namespace warp::log::mini {
+
 static constexpr const char* LEVEL_STR[] {
-#if ENABLE_ANSI_COLOR_CODE
-  "[TRACE] : ",
-  "[DEBUG] : ",
-  "[INFO]  : ",
-  "[WARN]  : ",
-  "[ERROR] : ",
-  "[FATAL] : ",
-#else
-  "[TRACE] : ",
-  "[DEBUG] : ",
-  "[INFO]  : ",
-  "[WARN]  : ",
-  "[ERROR] : ",
-  "[FATAL] : ",
-#endif
+  "[TRACE]",
+  "[DEBUG]",
+  "[INFO]",
+  "[WARN]",
+  "[ERROR]",
+  "[FATAL]",
 };
+
+[[nodiscard]] static constexpr inline std::string_view openColor(MiniLogLevel level) noexcept {
+#if ENABLE_ANSI_COLOR_CODE
+  static constexpr const char* COLOR_TABLE[] {
+    "\033[90m",
+    "\033[36m",
+    "\033[32m",
+    "\033[33m",
+    "\033[31m",
+    "\033[41m",
+  };
+
+  return COLOR_TABLE[level];
+#else
+  return "";
+#endif
+}
+
+[[nodiscard]] static constexpr inline const char* closeColor() noexcept {
+#if ENABLE_ANSI_COLOR_CODE
+  return "\033[0m  ";
+#else
+  return "  ";
+#endif
+}
 
 [[nodiscard]] static inline std::string_view getTimestamp() noexcept {
 #if ENABLE_TIMESTAMP
   std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   std::tm tm_struct{};
 
-  static char buf[sizeof("\n[HH:MM:SS]") - 1] {};
+  static char buf[sizeof("\n[HH:MM:SS]")] {};
 
 #ifdef _WIN32
   localtime_s(&tm_struct, &t);
@@ -70,11 +87,41 @@ static constexpr const char* LEVEL_STR[] {
 /// --- MACROS ---
 
 #define WLOG(LVL) \
-  (LVL < warp::log::mini::L_WARN ? std::cout : std::cerr) \
+  (LVL < L_WARN ? std::cout : std::cerr) \
+    << warp::log::mini::openColor(LVL) \
     << warp::log::mini::getTimestamp() \
+    << "[" << __FILE__ << ":" << __FUNCTION__ << "():" << __LINE__ << "]" \
     << warp::log::mini::LEVEL_STR[LVL] \
+    << warp::log::mini::closeColor()
+
+#define WLOGT WLOG(L_TRACE)
+#define WLOGD WLOG(L_DEBUG)
+#define WLOGI WLOG(L_INFO)
+#define WLOGW WLOG(L_WARN)
+#define WLOGE WLOG(L_ERROR)
+#define WLOGF WLOG(L_FATAL)
 
 inline void test() {
-  auto LVL = warp::log::mini::L_DEBUG;
-  WLOG(warp::log::mini::L_DEBUG) << "Hello World";
+  auto LVL = L_DEBUG;
+
+  WLOGT << "Hello, World";
+  WLOGD << "Hello, World";
+  WLOGI << "Hello, World";
+  WLOGW << "Hello, World";
+  WLOGE << "Hello, World";
+  WLOGF << "Hello, World";
 }
+
+class Sample {
+public:
+  void test() {
+    auto LVL = L_DEBUG;
+
+    WLOGT << "Hello, World, from Samepl";
+    WLOGD << "Hello, World, from Samepl";
+    WLOGI << "Hello, World, from Samepl";
+    WLOGW << "Hello, World, from Samepl";
+    WLOGE << "Hello, World, from Samepl";
+    WLOGF << "Hello, World, from Samepl";
+  }
+};
