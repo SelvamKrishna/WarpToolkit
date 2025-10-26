@@ -2,8 +2,14 @@
 
 /// --- Config ---
 
-#define ENABLE_COLOR_CODE true
-#define ENABLE_TIMESTAMP  true
+#define ENABLE_COLOR_CODE false
+#define ENABLE_TIMESTAMP  false
+
+#define TEST_PASS_TEXT "[PASS]"
+#define TEST_FAIL_TEXT "[FAIL]"
+
+#define SCOPE_ENTER_TEXT "--{"
+#define SCOPE_LEAVE_TEXT "}--"
 
 /// --- Includes ---
 
@@ -74,8 +80,8 @@ static constexpr const char* COLOR_TABLE[] {
 
 /// [PASS], [FAIL]
 
-static const inline std::string PASS = warp::mini::colorText(32, "[PASS]");
-static const inline std::string FAIL = warp::mini::colorText(31, "[FAIL]");
+static const inline std::string PASS = warp::mini::colorText(32, TEST_PASS_TEXT);
+static const inline std::string FAIL = warp::mini::colorText(31, TEST_FAIL_TEXT);
 
 [[nodiscard]] static inline std::string_view getTimestamp() noexcept {
 #if ENABLE_TIMESTAMP
@@ -110,6 +116,9 @@ static ResetTerminal s_reset_term {};
 
 /// --- MACROS ---
 
+/// if (NDEBUG)
+
+
 /// `os <<`
 
 #define WLOG(LVL)                         \
@@ -126,6 +135,31 @@ static ResetTerminal s_reset_term {};
 #define WLOGW  WLOG(L_WARN)
 #define WLOGE  WLOG(L_ERROR)
 #define WLOGF  WLOG(L_FATAL)
+
+namespace warp::mini {
+
+/// Automatically logs trace messages for functions
+struct ScopeTracer {
+  std::string FN_NAME;
+
+  static inline const std::string ENTER_TEXT = warp::mini::colorText(92, SCOPE_ENTER_TEXT);
+  static inline const std::string LEAVE_TEXT = warp::mini::colorText(91, SCOPE_LEAVE_TEXT);
+
+  explicit ScopeTracer(std::string_view fn_name) : FN_NAME {fn_name} {
+    WLOGT << ENTER_TEXT << " : " << FN_NAME;
+  }
+
+  ~ScopeTracer() {
+    WLOGT << LEAVE_TEXT << " : " << FN_NAME;
+  }
+
+};
+
+} // namespace warp::mini
+
+/// ScopeTracer {fn};
+#define WTRACE           warp::mini::ScopeTracer __scope_tracer__ {std::format("{}()", __FUNCTION__)}
+#define WTRACE_C(CLASS)  warp::mini::ScopeTracer __scope_tracer__ {std::format("{}::{}()", #CLASS, __FUNCTION__)}
 
 /// `if (flag) os <<`
 
@@ -153,13 +187,13 @@ static ResetTerminal s_reset_term {};
 
 /// `if (!flag) WLOGF << flag; abort();`
 
-#define WASSERT(CONDITION) do {                       \
-  if (!(CONDITION)) {                                 \
-    WLOGF                                             \
-      << warp::mini::colorText(41, "[ASSERT][FAIL]")  \
-      << " : " #CONDITION "\n";                       \
-    std::abort();                                     \
-  }                                                   \
+#define WASSERT(CONDITION) do {                          \
+  if (!(CONDITION)) {                                    \
+    WLOGF                                                \
+      << warp::mini::colorText(41, "[ASSERT][FAILURE]")  \
+      << " : " #CONDITION "\n";                          \
+    std::abort();                                        \
+  }                                                      \
 } while (0)
 
 #define WASSERT_EQ(ACTUAL, EXPECTED)  WASSERT((ACTUAL) == (EXPECTED))
