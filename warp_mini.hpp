@@ -80,8 +80,13 @@ static constexpr const char* COLOR_TABLE[] {
 
 /// [PASS], [FAIL]
 
-static const inline std::string PASS = warp::mini::colorText(32, TEST_PASS_TEXT);
-static const inline std::string FAIL = warp::mini::colorText(31, TEST_FAIL_TEXT);
+#if ENABLE_COLOR_CODE
+static constexpr const char* PASS {"\033[32m" TEST_PASS_TEXT "\033[0m"};
+static constexpr const char* FAIL {"\033[31m" TEST_FAIL_TEXT "\033[0m"};
+#else
+static constexpr const char* PASS {TEST_PASS_TEXT};
+static constexpr const char* FAIL {TEST_FAIL_TEXT};
+#endif
 
 [[nodiscard]] static inline std::string_view getTimestamp() noexcept {
 #if ENABLE_TIMESTAMP
@@ -118,6 +123,7 @@ static ResetTerminal s_reset_term {};
 
 /// if (NDEBUG)
 
+/// TODO:
 
 /// `os <<`
 
@@ -142,8 +148,13 @@ namespace warp::mini {
 struct ScopeTracer {
   std::string FN_NAME;
 
-  static inline const std::string ENTER_TEXT = warp::mini::colorText(92, SCOPE_ENTER_TEXT);
-  static inline const std::string LEAVE_TEXT = warp::mini::colorText(91, SCOPE_LEAVE_TEXT);
+#if ENABLE_COLOR_CODE
+  static constexpr const char* ENTER_TEXT {SCOPE_ENTER_TEXT};
+  static constexpr const char* LEAVE_TEXT {SCOPE_LEAVE_TEXT};
+#else
+  static constexpr const char* ENTER_TEXT {"\033[92m" SCOPE_ENTER_TEXT "\033[0m"};
+  static constexpr const char* LEAVE_TEXT {"\033[91m" SCOPE_LEAVE_TEXT "\033[0m"};
+#endif
 
   explicit ScopeTracer(std::string_view fn_name) : FN_NAME {fn_name} {
     WLOGT << ENTER_TEXT << " : " << FN_NAME;
