@@ -1,10 +1,10 @@
 #pragma once
 
 /// --- Configuration ---
+/// Modify if needed
 
 #define ENABLE_ANSI_COLOR_CODE (true)
 #define ENABLE_TIMESTAMP       (true)
-#define ENABLE_SENDER_CONTEXT  (true)
 
 /// --- Includes ---
 
@@ -17,7 +17,7 @@
 
 /// --- Utilities ---
 
-enum MiniLogLevel : uint8_t {
+enum LogLevel : uint8_t {
   L_TRACE,
   L_DEBUG,
   L_INFO,
@@ -26,7 +26,7 @@ enum MiniLogLevel : uint8_t {
   L_FATAL,
 };
 
-namespace warp::log::mini {
+namespace warp::mini {
 
 static constexpr const char* LEVEL_STR[] {
   "[TRACE]",
@@ -37,17 +37,19 @@ static constexpr const char* LEVEL_STR[] {
   "[FATAL]",
 };
 
-[[nodiscard]] static constexpr inline std::string_view openLog(MiniLogLevel level) noexcept {
 #if ENABLE_ANSI_COLOR_CODE
-  static constexpr const char* COLOR_TABLE[] {
-    "\033[0m\033[90m",
-    "\033[0m\033[36m",
-    "\033[0m\033[32m",
-    "\033[0m\033[33m",
-    "\033[0m\033[31m",
-    "\033[0m\033[41m",
-  };
+static constexpr const char* COLOR_TABLE[] {
+  "\033[90m",
+  "\033[36m",
+  "\033[32m",
+  "\033[33m",
+  "\033[31m",
+  "\033[41m",
+};
+#endif
 
+[[nodiscard]] static constexpr inline std::string_view openLog(LogLevel level) noexcept {
+#if ENABLE_ANSI_COLOR_CODE
   return COLOR_TABLE[level];
 #else
   return "";
@@ -55,9 +57,10 @@ static constexpr const char* LEVEL_STR[] {
 }
 
 [[nodiscard]] static constexpr inline const char* closeLog() noexcept {
-  return "  ";
+  return "\033[0m : ";
 }
 
+/// Automatically resets timer at the end of program
 struct ResetTerminal {
   ~ResetTerminal() noexcept {
     std::cout << "\033[0m" << std::endl;
@@ -86,18 +89,16 @@ static ResetTerminal s_reset_term {};
 #endif
 }
 
-} // namespace warp::log::mini
+} // namespace warp::mini
 
 /// --- MACROS ---
 
 #define WLOG(LVL) \
   (LVL < L_WARN ? std::cout : std::cerr) \
-    << warp::log::mini::openLog(LVL) \
-    << warp::log::mini::getTimestamp() \
-    << "[" << "::" << __func__ \
-    << " @ " << __FILE__ << ":" << __LINE__ << "]" \
-    << warp::log::mini::LEVEL_STR[LVL] \
-    << warp::log::mini::closeLog() \
+    << warp::mini::openLog(LVL) \
+    << warp::mini::getTimestamp() \
+    << warp::mini::LEVEL_STR[LVL] \
+    << warp::mini::closeLog() \
 
 #define WLOGT WLOG(L_TRACE)
 #define WLOGD WLOG(L_DEBUG)
@@ -105,28 +106,3 @@ static ResetTerminal s_reset_term {};
 #define WLOGW WLOG(L_WARN)
 #define WLOGE WLOG(L_ERROR)
 #define WLOGF WLOG(L_FATAL)
-
-inline void test() {
-  auto LVL = L_DEBUG;
-
-  WLOGT << "Hello, World";
-  WLOGD << "Hello, World";
-  WLOGI << "Hello, World";
-  WLOGW << "Hello, World";
-  WLOGE << "Hello, World";
-  WLOGF << "Hello, World";
-}
-
-class Sample {
-public:
-  void test() {
-    auto LVL = L_DEBUG;
-
-    WLOGT << "Hello, World, from Samepl";
-    WLOGD << "Hello, World, from Samepl";
-    WLOGI << "Hello, World, from Samepl";
-    WLOGW << "Hello, World, from Samepl";
-    WLOGE << "Hello, World, from Samepl";
-    WLOGF << "Hello, World, from Samepl";
-  }
-};
