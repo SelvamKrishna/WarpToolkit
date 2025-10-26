@@ -2,7 +2,7 @@
 
 /// --- Config ---
 
-#define ENABLE_COLOR_CODE false
+#define ENABLE_COLOR_CODE true
 #define ENABLE_TIMESTAMP  false
 
 #define TEST_PASS_TEXT "[PASS]"
@@ -37,8 +37,8 @@ namespace warp::mini {
 static constexpr const char* LEVEL_STR[] {
   "[TRACE]",
   "[DEBUG]",
-  "[INFO]",
-  "[WARN]",
+  "[INFO] ",
+  "[WARN] ",
   "[ERROR]",
   "[FATAL]",
 };
@@ -117,23 +117,27 @@ struct ResetTerminal {
 
 static ResetTerminal s_reset_term {};
 
+/// NDEBUG support
+#ifdef NDEBUG
+static constexpr LogLevel MIN_LOG_LEVEL = L_INFO;
+#else
+static constexpr LogLevel MIN_LOG_LEVEL = L_TRACE;
+#endif
+
 } // namespace warp::mini
 
 /// --- MACROS ---
 
-/// if (NDEBUG)
-
-/// TODO:
-
 /// `os <<`
 
-#define WLOG(LVL)                         \
-  (LVL < L_WARN ? std::cout : std::cerr)  \
-    << "\n"                               \
-    << warp::mini::openColor(LVL)         \
-    << warp::mini::getTimestamp()         \
-    << warp::mini::LEVEL_STR[LVL]         \
-    << warp::mini::closeColor()           \
+#define WLOG(LVL)                                  \
+  if constexpr (LVL >= warp::mini::MIN_LOG_LEVEL)  \
+    (LVL < L_WARN ? std::cout : std::cerr)         \
+      << "\n"                                      \
+      << warp::mini::openColor(LVL)                \
+      << warp::mini::getTimestamp()                \
+      << warp::mini::LEVEL_STR[LVL]                \
+      << warp::mini::closeColor()                  \
 
 #define WLOGT  WLOG(L_TRACE)
 #define WLOGD  WLOG(L_DEBUG)
