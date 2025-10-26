@@ -130,6 +130,8 @@ static constexpr LogLevel MIN_LOG_LEVEL = L_TRACE;
 
 /// `os <<`
 
+#define WLOG_RAW  std::cout << "\n\033[0m"
+
 #define WLOG(LVL)                                  \
   if constexpr (LVL >= warp::mini::MIN_LOG_LEVEL)  \
     (LVL < L_WARN ? std::cout : std::cerr)         \
@@ -153,11 +155,11 @@ struct ScopeTracer {
   std::string FN_NAME;
 
 #if ENABLE_COLOR_CODE
-  static constexpr const char* ENTER_TEXT {SCOPE_ENTER_TEXT};
-  static constexpr const char* LEAVE_TEXT {SCOPE_LEAVE_TEXT};
-#else
   static constexpr const char* ENTER_TEXT {"\033[92m" SCOPE_ENTER_TEXT "\033[0m"};
   static constexpr const char* LEAVE_TEXT {"\033[91m" SCOPE_LEAVE_TEXT "\033[0m"};
+#else
+  static constexpr const char* ENTER_TEXT {SCOPE_ENTER_TEXT};
+  static constexpr const char* LEAVE_TEXT {SCOPE_LEAVE_TEXT};
 #endif
 
   explicit ScopeTracer(std::string_view fn_name) : FN_NAME {fn_name} {
