@@ -1,10 +1,9 @@
 #pragma once
 
 /// --- Configuration ---
-/// Modify if needed
 
-#define ENABLE_ANSI_COLOR_CODE (true)
-#define ENABLE_TIMESTAMP       (true)
+#define ENABLE_ANSI_COLOR_CODE (true) /// Adds color to console logging
+#define ENABLE_TIMESTAMP       (true) /// Adds timestamp to console logging
 
 /// --- Includes ---
 
@@ -17,6 +16,7 @@
 
 /// --- Utilities ---
 
+/// Supported log levels
 enum LogLevel : uint8_t {
   L_TRACE,
   L_DEBUG,
@@ -39,12 +39,12 @@ static constexpr const char* LEVEL_STR[] {
 
 #if ENABLE_ANSI_COLOR_CODE
 static constexpr const char* COLOR_TABLE[] {
-  "\033[90m",
-  "\033[36m",
-  "\033[32m",
-  "\033[33m",
-  "\033[31m",
-  "\033[41m",
+  "\n\033[90m",
+  "\n\033[36m",
+  "\n\033[32m",
+  "\n\033[33m",
+  "\n\033[31m",
+  "\n\033[41m",
 };
 #endif
 
@@ -52,7 +52,7 @@ static constexpr const char* COLOR_TABLE[] {
 #if ENABLE_ANSI_COLOR_CODE
   return COLOR_TABLE[level];
 #else
-  return "";
+  return "\n";
 #endif
 }
 
@@ -60,21 +60,12 @@ static constexpr const char* COLOR_TABLE[] {
   return "\033[0m : ";
 }
 
-/// Automatically resets timer at the end of program
-struct ResetTerminal {
-  ~ResetTerminal() noexcept {
-    std::cout << "\033[0m" << std::endl;
-  }
-};
-
-static ResetTerminal s_reset_term {};
-
 [[nodiscard]] static inline std::string_view getTimestamp() noexcept {
 #if ENABLE_TIMESTAMP
   std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   std::tm tm_struct{};
 
-  static char buf[sizeof("\n[HH:MM:SS]")] {};
+  static char buf[sizeof("[HH:MM:SS]")] {};
 
 #ifdef _WIN32
   localtime_s(&tm_struct, &t);
@@ -82,12 +73,21 @@ static ResetTerminal s_reset_term {};
   localtime_r(&t, &tm_struct);
 #endif
 
-  std::strftime(buf, sizeof(buf), "\n[%H:%M:%S]", &tm_struct);
+  std::strftime(buf, sizeof(buf), "[%H:%M:%S]", &tm_struct);
   return buf;
 #else
-  return "\n";
+  return "";
 #endif
 }
+
+/// Automatically resets terminal at the end of program
+struct ResetTerminal {
+  ~ResetTerminal() noexcept {
+    std::cout << "\033[0m" << std::endl;
+  }
+};
+
+static ResetTerminal s_reset_term {};
 
 } // namespace warp::mini
 
