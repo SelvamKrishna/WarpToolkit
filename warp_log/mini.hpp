@@ -37,15 +37,15 @@ static constexpr const char* LEVEL_STR[] {
   "[FATAL]",
 };
 
-[[nodiscard]] static constexpr inline std::string_view openColor(MiniLogLevel level) noexcept {
+[[nodiscard]] static constexpr inline std::string_view openLog(MiniLogLevel level) noexcept {
 #if ENABLE_ANSI_COLOR_CODE
   static constexpr const char* COLOR_TABLE[] {
-    "\033[90m",
-    "\033[36m",
-    "\033[32m",
-    "\033[33m",
-    "\033[31m",
-    "\033[41m",
+    "\033[0m\033[90m",
+    "\033[0m\033[36m",
+    "\033[0m\033[32m",
+    "\033[0m\033[33m",
+    "\033[0m\033[31m",
+    "\033[0m\033[41m",
   };
 
   return COLOR_TABLE[level];
@@ -54,13 +54,17 @@ static constexpr const char* LEVEL_STR[] {
 #endif
 }
 
-[[nodiscard]] static constexpr inline const char* closeColor() noexcept {
-#if ENABLE_ANSI_COLOR_CODE
-  return "\033[0m  ";
-#else
+[[nodiscard]] static constexpr inline const char* closeLog() noexcept {
   return "  ";
-#endif
 }
+
+struct ResetTerminal {
+  ~ResetTerminal() noexcept {
+    std::cout << "\033[0m" << std::endl;
+  }
+};
+
+static ResetTerminal s_reset_term {};
 
 [[nodiscard]] static inline std::string_view getTimestamp() noexcept {
 #if ENABLE_TIMESTAMP
@@ -88,11 +92,12 @@ static constexpr const char* LEVEL_STR[] {
 
 #define WLOG(LVL) \
   (LVL < L_WARN ? std::cout : std::cerr) \
-    << warp::log::mini::openColor(LVL) \
+    << warp::log::mini::openLog(LVL) \
     << warp::log::mini::getTimestamp() \
-    << "[" << __FILE__ << ":" << __FUNCTION__ << "():" << __LINE__ << "]" \
+    << "[" << "::" << __func__ \
+    << " @ " << __FILE__ << ":" << __LINE__ << "]" \
     << warp::log::mini::LEVEL_STR[LVL] \
-    << warp::log::mini::closeColor()
+    << warp::log::mini::closeLog() \
 
 #define WLOGT WLOG(L_TRACE)
 #define WLOGD WLOG(L_DEBUG)
