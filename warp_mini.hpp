@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <mutex>
 
 #if ENABLE_TIMESTAMP
 #include <chrono>
@@ -55,6 +56,37 @@ static constexpr const char* COLOR_TABLE[] {
 };
 #endif
 
+#if ENABLE_COLOR_CODE
+static constexpr const char* PASS {"\033[32m" TEST_PASS_TEXT "\033[0m"};
+static constexpr const char* FAIL {"\033[31m" TEST_FAIL_TEXT "\033[0m"};
+#else
+static constexpr const char* PASS {TEST_PASS_TEXT};
+static constexpr const char* FAIL {TEST_FAIL_TEXT};
+#endif
+
+/// NDEBUG support
+#ifdef NDEBUG
+static constexpr LogLevel MIN_LOG_LEVEL = L_INFO;
+#else
+static constexpr LogLevel MIN_LOG_LEVEL = L_TRACE;
+#endif
+
+/// Automatically resets terminal at the end of program
+struct ResetTerminal {
+  ~ResetTerminal() noexcept {
+    std::cout << "\033[0m" << std::endl;
+  }
+};
+
+static ResetTerminal s_reset_term {};
+
+inline std::ostream& logStream(LogLevel level) {
+  static std::mutex s_log_mutex {};
+  static thread_local std::scoped_lock lock {s_log_mutex};
+
+  return (level < L_WARN) ? std::cout : std::cerr;
+}
+
 [[nodiscard]] static constexpr inline std::string_view openColor(LogLevel level) noexcept {
 #if ENABLE_COLOR_CODE
   return COLOR_TABLE[level];
@@ -79,16 +111,6 @@ static constexpr const char* COLOR_TABLE[] {
 #endif
 }
 
-/// [PASS], [FAIL]
-
-#if ENABLE_COLOR_CODE
-static constexpr const char* PASS {"\033[32m" TEST_PASS_TEXT "\033[0m"};
-static constexpr const char* FAIL {"\033[31m" TEST_FAIL_TEXT "\033[0m"};
-#else
-static constexpr const char* PASS {TEST_PASS_TEXT};
-static constexpr const char* FAIL {TEST_FAIL_TEXT};
-#endif
-
 [[nodiscard]] static inline std::string_view getTimestamp() noexcept {
 #if ENABLE_TIMESTAMP
   std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -109,21 +131,7 @@ static constexpr const char* FAIL {TEST_FAIL_TEXT};
 #endif
 }
 
-/// Automatically resets terminal at the end of program
-struct ResetTerminal {
-  ~ResetTerminal() noexcept {
-    std::cout << "\033[0m" << std::endl;
-  }
-};
-
-static ResetTerminal s_reset_term {};
-
-/// NDEBUG support
-#ifdef NDEBUG
-static constexpr LogLevel MIN_LOG_LEVEL = L_INFO;
-#else
-static constexpr LogLevel MIN_LOG_LEVEL = L_TRACE;
-#endif
+/// [PASS], [FAIL]
 
 } // namespace warp::mini
 
@@ -135,7 +143,7 @@ static constexpr LogLevel MIN_LOG_LEVEL = L_TRACE;
 
 #define WLOG(LVL)                                  \
   if constexpr (LVL >= warp::mini::MIN_LOG_LEVEL)  \
-    (LVL < L_WARN ? std::cout : std::cerr)         \
+    warp::mini::logStream(LVL)                     \
       << "\n"                                      \
       << warp::mini::openColor(LVL)                \
       << warp::mini::getTimestamp()                \
