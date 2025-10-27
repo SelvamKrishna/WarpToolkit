@@ -74,8 +74,12 @@ static constexpr LogLevel MIN_LOG_LEVEL = L_TRACE;
 
 /// Automatically resets terminal at the end of program
 struct ResetTerminal {
-  ~ResetTerminal() noexcept {
+  static void reset() noexcept {
     std::cout << "\033[0m" << std::endl;
+  }
+
+  ~ResetTerminal() noexcept {
+    std::atexit(reset);
   }
 };
 
@@ -83,8 +87,7 @@ static ResetTerminal s_reset_term {};
 
 inline std::ostream& logStream(LogLevel level) {
   static std::mutex s_log_mutex {};
-  static thread_local std::scoped_lock lock {s_log_mutex};
-
+  std::scoped_lock lock {s_log_mutex};
   return (level < L_WARN) ? std::cout : std::cerr;
 }
 
@@ -117,7 +120,7 @@ inline std::ostream& logStream(LogLevel level) {
   std::time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   std::tm tm_struct{};
 
-  static char buf[sizeof("[HH:MM:SS]")] {};
+  thread_local char buf[sizeof("[HH:MM:SS]")] {};
 
 #ifdef _WIN32
   localtime_s(&tm_struct, &t);
