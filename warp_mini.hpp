@@ -2,7 +2,9 @@
 
 /// --- Config ---
 
-#define ENABLE_LOGGING          true
+// #define DISABLE_LOGGING
+// #define MIN_LOGGING_LEVEL       L_DEBUG
+
 #define ENABLE_TIMESTAMP        false
 #define ENABLE_COLOR_CODE       true
 
@@ -65,11 +67,14 @@ static constexpr const char* PASS {TEST_PASS_TEXT};
 static constexpr const char* FAIL {TEST_FAIL_TEXT};
 #endif
 
-/// NDEBUG support
+#ifdef MIN_LOGGING_LEVEL
+static constexpr LogLevel MIN_LOG_LEVEL = MIN_LOGGING_LEVEL;
+#else
 #ifdef NDEBUG
 static constexpr LogLevel MIN_LOG_LEVEL = L_INFO;
 #else
 static constexpr LogLevel MIN_LOG_LEVEL = L_TRACE;
+#endif
 #endif
 
 /// Automatically resets terminal at the end of program
@@ -147,7 +152,12 @@ inline std::ostream& logStream(LogLevel level) {
 
 #define WLOG_RAW  std::cout << "\n\033[0m"
 
-#if ENABLE_LOGGING
+#ifdef DISABLE_LOGGING
+
+#define WLOG(LVL) \
+  if constexpr (false) std::cout
+
+#else
 
 #define WLOG(LVL)                                  \
   if constexpr (LVL >= warp::mini::MIN_LOG_LEVEL)  \
@@ -157,11 +167,6 @@ inline std::ostream& logStream(LogLevel level) {
       << warp::mini::getTimestamp()                \
       << warp::mini::LEVEL_STR[LVL]                \
       << warp::mini::closeColor()                  \
-
-#else
-
-#define WLOG(LVL) \
-  if constexpr (false) std::cout
 
 #endif
 
