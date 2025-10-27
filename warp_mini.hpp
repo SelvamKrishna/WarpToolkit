@@ -2,6 +2,7 @@
 
 /// --- Config ---
 
+#define ENABLE_LOGGING          true
 #define ENABLE_TIMESTAMP        false
 #define ENABLE_COLOR_CODE       true
 
@@ -131,6 +132,8 @@ inline std::ostream& logStream(LogLevel level) {
 #endif
 }
 
+[[noreturn]] static inline void killProcess() noexcept { std::abort(); }
+
 /// [PASS], [FAIL]
 
 } // namespace warp::mini
@@ -141,6 +144,8 @@ inline std::ostream& logStream(LogLevel level) {
 
 #define WLOG_RAW  std::cout << "\n\033[0m"
 
+#if ENABLE_LOGGING
+
 #define WLOG(LVL)                                  \
   if constexpr (LVL >= warp::mini::MIN_LOG_LEVEL)  \
     warp::mini::logStream(LVL)                     \
@@ -149,6 +154,13 @@ inline std::ostream& logStream(LogLevel level) {
       << warp::mini::getTimestamp()                \
       << warp::mini::LEVEL_STR[LVL]                \
       << warp::mini::closeColor()                  \
+
+#else
+
+#define WLOG(LVL) \
+  if constexpr (false) std::cout
+
+#endif
 
 #define WLOGT  WLOG(L_TRACE)
 #define WLOGD  WLOG(L_DEBUG)
@@ -186,11 +198,15 @@ struct ScopeTracer {
 /// ScopeTracer {fn};
 
 #if ((ENABLE_COLOR_CODE) && (ENABLE_SCOPE_FN_DULL))
+
 #define WTRACE           warp::mini::ScopeTracer __trace {std::format("\033[90m{}()\033[0m", __FUNCTION__)}
 #define WTRACE_C(CLASS)  warp::mini::ScopeTracer __trace {std::format("\033[90m{}::{}()\033[0m", #CLASS, __FUNCTION__)}
+
 #else
+
 #define WTRACE           warp::mini::ScopeTracer __trace {std::format("{}()", __FUNCTION__)}
 #define WTRACE_C(CLASS)  warp::mini::ScopeTracer __trace {std::format("{}::{}()", #CLASS, __FUNCTION__)}
+
 #endif
 
 /// `if (flag) os <<`
@@ -219,14 +235,56 @@ struct ScopeTracer {
 
 /// `if (!flag) WLOGF << flag; abort();`
 
-#define WASSERT(CONDITION) do {                          \
-  if (!(CONDITION)) {                                    \
-    WLOGF                                                \
-      << warp::mini::colorText(41, "[ASSERT][FAILURE]")  \
-      << " : " #CONDITION "\n";                          \
-    std::abort();                                        \
-  }                                                      \
+#define WASSERT(CONDITION) do {                 \
+  if (!(CONDITION)) {                           \
+    WLOGF                                       \
+      << warp::mini::colorText(41, "[ASSERT]")  \
+      << " : " #CONDITION "\n";                 \
+    std::abort();                               \
+  }                                             \
 } while (0)
 
 #define WASSERT_EQ(ACTUAL, EXPECTED)  WASSERT((ACTUAL) == (EXPECTED))
 #define WASSERT_NE(ACTUAL, EXPECTED)  WASSERT((ACTUAL) != (EXPECTED))
+
+/// `if (!flag) WLOGE << flag`
+
+#define WEXPECT(CONDITION) do {                 \
+  if (!(CONDITION)) {                           \
+    WLOGE                                       \
+      << warp::mini::colorText(31, "[EXPECT]")  \
+      << " : " #CONDITION "\n";                 \
+  }                                             \
+} while (0)
+
+#define WEXPECT_EQ(ACTUAL, EXPECTED)  WEXPECT((ACTUAL) == (EXPECTED))
+#define WEXPECT_NE(ACTUAL, EXPECTED)  WEXPECT((ACTUAL) != (EXPECTED))
+
+/// Developement Macros
+
+#ifdef NDEBUG
+
+#define WTODO(MSG)    {}
+#define WUNREACHABLE  {}
+
+#else
+
+#define WTODO(MSG) do {                     \
+  WLOGW                                     \
+    << warp::mini::colorText(33, "[TODO]")  \
+    << " : " MSG " : (" << __FILE__         \
+    << ") @ " << __FUNCTION__               \
+    << "() : " << __LINE__ << "\n";         \
+  warp::mini::killProcess();                \
+} while(0)
+
+#define WUNREACHABLE do {                          \
+  WLOGF                                            \
+    << warp::mini::colorText(41, "[UNREACHABLE]")  \
+    << " : (" << __FILE__                          \
+    << ") @ " << __FUNCTION__                      \
+    << "() : " << __LINE__ << "\n";                \
+  warp::mini::killProcess();                       \
+} while(0)
+
+#endif
