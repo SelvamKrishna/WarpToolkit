@@ -3,7 +3,10 @@
 /// --- Config ---
 
 // #define DISABLE_LOGGING
-// #define MIN_LOGGING_LEVEL       L_DEBUG
+// does not affect WTEST, WTEST_EQ, WTEST_NE
+
+#define MIN_LOG_LVL_DEBUG       L_DEBUG
+#define MIN_LOG_LVL_RELEASE     L_INFO
 
 #define ENABLE_TIMESTAMP        false
 #define ENABLE_COLOR_CODE       true
@@ -67,14 +70,10 @@ static constexpr const char* PASS {TEST_PASS_TEXT};
 static constexpr const char* FAIL {TEST_FAIL_TEXT};
 #endif
 
-#ifdef MIN_LOGGING_LEVEL
-static constexpr LogLevel MIN_LOG_LEVEL = MIN_LOGGING_LEVEL;
-#else
 #ifdef NDEBUG
-static constexpr LogLevel MIN_LOG_LEVEL = L_INFO;
+static constexpr LogLevel MIN_LOG_LEVEL = MIN_LOG_LVL_RELEASE;
 #else
-static constexpr LogLevel MIN_LOG_LEVEL = L_TRACE;
-#endif
+static constexpr LogLevel MIN_LOG_LEVEL = MIN_LOG_LVL_DEBUG;
 #endif
 
 /// Automatically resets terminal at the end of program
