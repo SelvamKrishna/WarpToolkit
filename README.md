@@ -15,9 +15,31 @@ It provides modern C++ utilities for:
 
 |Module|Features|
 |------|--------|
+|[**warp_mini**](#warp-mini)|General utility for logging, testing, debuging|
 |[**warp_log**](#warp-log)|ANSI-colored logging, custom tags, timestamps, multiple log levels|
 |[**warp_test**](#warp-test)|High-resolution timers, hierarchical timers, function benchmarking|
 |[**warp_timer**](#warp-timer)|Structured unit testing, collections, automatic summaries|
+
+---
+
+## Warp Mini
+
+Warp Mini is a *lightweight* and *flexible* *header-only* utility library for C++.
+It provides a collection of simple but powerful tools such as logging, testing, assertions,
+and more, all from a single header.
+
+The core file, `warp_mini.hpp`, is completely self-contained and highly configurable at compile time via preprocessor defines.
+It’s designed to drop easily into any project, giving you essential diagnostics and utility helpers with minimal overhead.
+
+---
+
+### Features
+
+- **Color-coded logging** with **timestamps** and **log levels**
+- **Assertions** and unit-style test macros
+- Compile-time configuration for **style** and **verbosity**
+- **Function scope tracing** features to track program
+- **Single-header**, **no external dependencies**
 
 ---
 
@@ -33,6 +55,8 @@ It provides *ANSI-colored* console logging, *context tagging*, and optional *tim
 |**Timestamps**|Optional timestamp logging per message|
 |**Custom Log Levels**|`Message`, `Info`, `Debug`, `Warn`, `Error`|
 |**Thread Safety**|Logs from multiple threads safely|
+
+---
 
 ### Logging Examples
 
@@ -60,6 +84,8 @@ timed_logger.info("Hello with timestamp!");
 // Colored console logging
 std::cout << ANSIFore::Blue << "Hello World\n" << ANSIFore::Reset;
 ```
+
+---
 
 ## Warp Test
 
@@ -111,8 +137,6 @@ int main() {
 
 ---
 
----
-
 ## Warp Timer
 
 **Warp Timer** measures execution duration with **high precision** and supports **benchmarking**.
@@ -123,6 +147,8 @@ int main() {
 |**Function Benchmarking**|Measure mean and median across multiple runs|
 |**Flexible Time Units**|`MicroSeconds`, `MilliSeconds`, `Seconds`|
 |**ANSI-Colored Output**|Logs times in visually clear, color-coded format|
+
+---
 
 ### Examples
 
