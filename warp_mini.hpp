@@ -2,19 +2,19 @@
 
 /// --- Config ---
 
-// #define DISABLE_LOGGING
+// #define DISABLE_LOGGING // Uncomment if needed
 // does not affect WTEST, WTEST_EQ, WTEST_NE
 
-#define MIN_LOG_LVL_DEBUG       L_DEBUG
+#define MIN_LOG_LVL_DEBUG       L_TRACE
 #define MIN_LOG_LVL_RELEASE     L_INFO
 
-#define ENABLE_TIMESTAMP        false
-#define ENABLE_COLOR_CODE       true
+#define ENABLE_TIMESTAMP        1
+#define ENABLE_COLOR_CODE       1
 
 #define TEST_PASS_TEXT          "[PASS]"
 #define TEST_FAIL_TEXT          "[FAIL]"
 
-#define ENABLE_SCOPE_FN_DULL    false
+#define ENABLE_TRACE_DULL       1
 #define SCOPE_ENTER_TEXT        "--{"
 #define SCOPE_LEAVE_TEXT        "}--"
 
@@ -149,14 +149,20 @@ inline std::ostream& logStream(LogLevel level) {
 
 /// `os <<`
 
-#define WLOG_RAW  std::cout << "\n\033[0m"
+// Works even if `DISABLE_LOGGING` is defined
+#define WLOG_BYPASS std::cout << "\n\033[0m"
 
 #ifdef DISABLE_LOGGING
+
+#define WLOG_RAW \
+  if constexpr (false) std::cout
 
 #define WLOG(LVL) \
   if constexpr (false) std::cout
 
 #else
+
+#define WLOG_RAW  WLOG_BYPASS
 
 #define WLOG(LVL)                                  \
   if constexpr (LVL >= warp::mini::MIN_LOG_LEVEL)  \
@@ -204,7 +210,7 @@ struct ScopeTracer {
 
 /// ScopeTracer {fn};
 
-#if ((ENABLE_COLOR_CODE) && (ENABLE_SCOPE_FN_DULL))
+#if ((ENABLE_COLOR_CODE) && (ENABLE_TRACE_DULL))
 
 #define WTRACE           warp::mini::ScopeTracer __trace {std::format("\033[90m{}()\033[0m", __FUNCTION__)}
 #define WTRACE_C(CLASS)  warp::mini::ScopeTracer __trace {std::format("\033[90m{}::{}()\033[0m", #CLASS, __FUNCTION__)}
